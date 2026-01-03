@@ -141,4 +141,4 @@ Then switch to `enforce`.
 
 ## License
 
-MIT
+This package is open-source software licensed under the MIT license.
