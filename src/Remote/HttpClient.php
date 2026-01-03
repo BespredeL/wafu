@@ -1,0 +1,138 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Bespredel\Wafu\Remote;
+
+final class HttpClient
+{
+
+    /**
+     * @param string $url
+     * @param array  $headers
+     *
+     * @return array
+     */
+    public function get(string $url, array $headers = []): array
+    {
+        // Use ext-curl if available, otherwise use stream
+        if (function_exists('curl_init')) {
+            return $this->curlGet($url, $headers);
+        }
+
+        return $this->streamGet($url, $headers);
+    }
+
+    /**
+     * @param string $url
+     * @param array  $headers
+     *
+     * @return array
+     */
+    private function curlGet(string $url, array $headers): array
+    {
+        $ch = curl_init($url);
+
+        $h = [];
+        foreach ($headers as $k => $v) {
+            $h[] = $k . ': ' . $v;
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_HTTPHEADER     => $h,
+            CURLOPT_HEADER         => true,
+        ]);
+
+        $raw = curl_exec($ch);
+        $errno = curl_errno($ch);
+        $info = curl_getinfo($ch);
+        curl_close($ch);
+
+        if ($raw === false || $errno !== 0) {
+            return ['status' => 0, 'headers' => [], 'body' => ''];
+        }
+
+        $headerSize = (int)($info['header_size'] ?? 0);
+        $headerRaw = substr($raw, 0, $headerSize);
+        $body = substr($raw, $headerSize);
+
+        return [
+            'status'  => (int)($info['http_code'] ?? 0),
+            'headers' => $this->parseHeaders($headerRaw),
+            'body'    => (string)$body,
+        ];
+    }
+
+    /**
+     * @param string $url
+     * @param array  $headers
+     *
+     * @return array
+     */
+    private function streamGet(string $url, array $headers): array
+    {
+        $headerLines = [];
+        foreach ($headers as $k => $v) {
+            $headerLines[] = $k . ': ' . $v;
+        }
+
+        $ctx = stream_context_create([
+            'http' => [
+                'method'        => 'GET',
+                'header'        => implode("\r\n", $headerLines),
+                'timeout'       => 5,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $body = @file_get_contents($url, false, $ctx);
+        $body = $body === false ? '' : $body;
+
+        $status = 0;
+        $respHeaders = [];
+        if (isset($http_response_header) && is_array($http_response_header)) {
+            $respHeaders = $this->parseHeaders(implode("\r\n", $http_response_header));
+            // first line: HTTP/1.1 200 OK
+            $first = $http_response_header[0] ?? '';
+            if (preg_match('/\s(\d{3})\s/', $first, $m)) {
+                $status = (int)$m[1];
+            }
+        }
+
+        return [
+            'status'  => $status,
+            'headers' => $respHeaders,
+            'body'    => (string)$body,
+        ];
+    }
+
+    /**
+     * @param string $raw
+     *
+     * @return array
+     */
+    private function parseHeaders(string $raw): array
+    {
+        $headers = [];
+        $lines = preg_split('/\r\n|\n|\r/', $raw) ?: [];
+
+        foreach ($lines as $line) {
+            if (!str_contains($line, ':')) {
+                continue;
+            }
+
+            [$k, $v] = explode(':', $line, 2);
+            $k = strtolower(trim($k));
+            $v = trim($v);
+            if ($k !== '') {
+                $headers[$k] = $v;
+            }
+        }
+
+        return $headers;
+    }
+}

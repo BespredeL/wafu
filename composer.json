@@ -1,0 +1,44 @@
+{
+    "name": "bespredel/wafu",
+    "description": "Config-driven Web Application Firewall (WAF) universal for PHP",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "ext-mbstring": "*",
+        "psr/http-message": "^2.0",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5",
+        "friendsofphp/php-cs-fixer": "^3.60",
+        "vimeo/psalm": "^5.26"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bespredel\\Wafu\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bespredel\\Wafu\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "WafuServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "cs:fix": "php-cs-fixer fix -v",
+        "psalm": "psalm"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

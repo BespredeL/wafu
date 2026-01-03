@@ -1,0 +1,223 @@
+{
+    "version": "2026.01.03-01",
+    "ttl": 300,
+    "config": {
+        "enabled": true,
+        "mode": "enforce",
+        "trusted_proxies": [],
+        "trust_forwarded_headers": false,
+        "pipeline": [
+            "ip_blocklist",
+            "method_allowlist",
+            "uri_rules",
+            "path_traversal",
+            "lfi",
+            "rce",
+            "bad_bots",
+            "rate_limit",
+            "sql_injection",
+            "xss"
+        ],
+        "actions": {
+            "block": {
+                "class": "Bespredel\\Wafu\\Actions\\BlockAction",
+                "status": 403,
+                "message": "Blocked by WAFU",
+                "terminate": false
+            },
+            "challenge": {
+                "class": "Bespredel\\Wafu\\Actions\\ChallengeAction",
+                "status": 429,
+                "message": "Too many requests. Please retry later.",
+                "retry_after": 15,
+                "terminate": false
+            },
+            "log": {
+                "class": "Bespredel\\Wafu\\Actions\\LogAction",
+                "channel": "security",
+                "level": "warning"
+            }
+        },
+        "patterns": {
+            "sql_keywords": [
+                "/\\bUNION\\b/i",
+                "/\\bSELECT\\b/i",
+                "/\\bINSERT\\b/i",
+                "/\\bUPDATE\\b/i",
+                "/\\bDELETE\\b/i",
+                "/\\bDROP\\b/i",
+                "/\\bSLEEP\\s*\\(/i",
+                "/\\bBENCHMARK\\s*\\(/i",
+                "/\\bINFORMATION_SCHEMA\\b/i",
+                "/(--|#|\\/\\*)/m",
+                "/\\bOR\\b\\s+1\\s*=\\s*1/i"
+            ],
+            "xss_basic": [
+                "/<\\s*script\\b/i",
+                "/on\\w+\\s*=/i",
+                "/javascript\\s*:/i",
+                "/<\\s*img\\b[^>]*\\bonerror\\s*=/i",
+                "/document\\.cookie/i"
+            ],
+            "bad_bots_ua": [
+                "/\\bcurl\\b/i",
+                "/\\bwget\\b/i",
+                "/python-requests/i",
+                "/\\bokhttp\\b/i",
+                "/\\bnikto\\b/i",
+                "/\\bsqlmap\\b/i",
+                "/\\bmasscan\\b/i",
+                "/\\bnmap\\b/i"
+            ],
+            "path_traversal": [
+                "/\\.\\.(\\/|\\\\\\\\)/",
+                "/%2e%2e(\\/|%2f|\\\\\\\\|%5c)/i",
+                "/%252e%252e%252f/i",
+                "/%c0%ae%c0%ae/i"
+            ],
+            "lfi_files": [
+                "/\\/etc\\/passwd\\b/i",
+                "/\\/etc\\/shadow\\b/i",
+                "/\\/proc\\/self\\/environ\\b/i",
+                "/\\/proc\\/\\d+\\/cmdline\\b/i",
+                "/\\b(?:wp-config\\.php|configuration\\.php|\\.env)\\b/i",
+                "/\\bphp:\\/\\/(?:filter|input|stdin|memory|temp)\\b/i",
+                "/\\b(?:expect|data|phar|zip):\\/\\//i"
+            ],
+            "rce_signatures": [
+                "/(;|\\|\\||&&|\\||`|\\$\\(|\\$\\{)/",
+                "/\\b(?:bash|sh|cmd|powershell|pwsh)\\b/i",
+                "/\\b(?:curl|wget|nc|netcat|ncat|socat)\\b/i",
+                "/\\bpython\\s*-c\\b/i",
+                "/\\bperl\\s*-e\\b/i",
+                "/\\bphp\\s*-r\\b/i",
+                "/\\/bin\\/(?:ba)?sh\\b.*\\s-c\\b/i"
+            ]
+        },
+        "modules": {
+            "ip_blocklist": {
+                "class": "Bespredel\\Wafu\\Modules\\IpBlocklistModule",
+                "blocklist": [],
+                "on_match": "block",
+                "reason": "IP blocked"
+            },
+            "method_allowlist": {
+                "class": "Bespredel\\Wafu\\Modules\\MethodAllowlistModule",
+                "allow": [
+                    "GET",
+                    "POST",
+                    "HEAD"
+                ],
+                "on_deny": "block",
+                "reason": "HTTP method not allowed"
+            },
+            "uri_rules": {
+                "class": "Bespredel\\Wafu\\Modules\\UriAllowDenyModule",
+                "allow_prefix": [
+                    "/"
+                ],
+                "allow_regex": [],
+                "deny_prefix": [
+                    "/.env",
+                    "/.git",
+                    "/vendor"
+                ],
+                "deny_regex": [
+                    "uri_deny"
+                ],
+                "on_deny": "block",
+                "reason": "URI is not allowed"
+            },
+            "path_traversal": {
+                "class": "Bespredel\\Wafu\\Modules\\PathTraversalModule",
+                "targets": [
+                    "uri",
+                    "query",
+                    "body",
+                    "cookies"
+                ],
+                "patterns": [
+                    "path_traversal"
+                ],
+                "on_match": "block",
+                "reason": "Path traversal attempt detected"
+            },
+            "lfi": {
+                "class": "Bespredel\\Wafu\\Modules\\LfiModule",
+                "targets": [
+                    "query",
+                    "body",
+                    "cookies",
+                    "uri"
+                ],
+                "patterns": [
+                    "lfi_files"
+                ],
+                "on_match": "block",
+                "reason": "LFI attempt detected"
+            },
+            "rce": {
+                "class": "Bespredel\\Wafu\\Modules\\RceModule",
+                "targets": [
+                    "query",
+                    "body",
+                    "cookies",
+                    "headers",
+                    "uri"
+                ],
+                "patterns": [
+                    "rce_signatures"
+                ],
+                "on_match": "block",
+                "reason": "RCE attempt detected"
+            },
+            "bad_bots": {
+                "class": "Bespredel\\Wafu\\Modules\\HeaderModule",
+                "headers": [
+                    "User-Agent"
+                ],
+                "patterns": [
+                    "bad_bots_ua"
+                ],
+                "on_match": "challenge",
+                "reason": "Bot/scanner detected"
+            },
+            "rate_limit": {
+                "class": "Bespredel\\Wafu\\Modules\\RateLimitModule",
+                "limit": 120,
+                "interval": 60,
+                "key_by": "ip",
+                "on_exceed": "challenge",
+                "reason": "Rate limit exceeded",
+                "gc_probability": 100,
+                "ttl_multiplier": 5
+            },
+            "sql_injection": {
+                "class": "Bespredel\\Wafu\\Modules\\RegexMatchModule",
+                "targets": [
+                    "query",
+                    "body",
+                    "cookies"
+                ],
+                "patterns": [
+                    "sql_keywords"
+                ],
+                "on_match": "block",
+                "reason": "SQL injection detected"
+            },
+            "xss": {
+                "class": "Bespredel\\Wafu\\Modules\\RegexMatchModule",
+                "targets": [
+                    "query",
+                    "body",
+                    "cookies"
+                ],
+                "patterns": [
+                    "xss_basic"
+                ],
+                "on_match": "block",
+                "reason": "XSS detected"
+            }
+        }
+    }
+}
