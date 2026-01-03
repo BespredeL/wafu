@@ -8,9 +8,11 @@ use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Decision;
+use Bespredel\Wafu\Helpers\ModuleHelperTrait;
 
 final class RateLimitModule implements ModuleInterface
 {
+    use ModuleHelperTrait;
     /**
      * @var string
      */
@@ -112,26 +114,15 @@ final class RateLimitModule implements ModuleInterface
             ]);
 
             if ($exceeded) {
-                $context->setAttribute('wafu.match', [
+                $matchData = [
                     'module'   => self::class,
                     'key'      => $this->keyBy,
                     'limit'    => $this->limit,
                     'interval' => $this->interval,
-                ]);
+                ];
+                $context->setAttribute('wafu.match', $matchData);
 
-                $resp = $context->getAttribute('wafu.response');
-                if (is_array($resp) && isset($resp['status'])) {
-                    return Decision::blockWithResponse(
-                        $this->onExceed,
-                        $this->reason,
-                        (int)$resp['status'],
-                        (array)($resp['headers'] ?? []),
-                        (string)($resp['body'] ?? $this->reason),
-                        ['match' => $context->getAttribute('wafu.match')]
-                    );
-                }
-
-                return Decision::block($this->onExceed, $this->reason);
+                return $this->createDecision($context, $this->onExceed, $this->reason, $matchData);
             }
         }
         finally {
@@ -162,14 +153,34 @@ final class RateLimitModule implements ModuleInterface
             return;
         }
 
-        $files = @glob(rtrim($this->storageDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.json') ?: [];
+        // Limit the number of files processed per GC run to avoid blocking
+        $maxFilesPerGc = 100;
+        $pattern = rtrim($this->storageDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.json';
+        $files = @glob($pattern) ?: [];
+
+        // Limit processing to avoid long GC runs
+        if (count($files) > $maxFilesPerGc) {
+            // Shuffle to ensure we don't always process the same files
+            shuffle($files);
+            $files = array_slice($files, 0, $maxFilesPerGc);
+        }
+
+        $processed = 0;
         foreach ($files as $file) {
-            if (!is_string($file)) {
+            if (!is_string($file) || !is_file($file)) {
                 continue;
             }
 
+            // Check file modification time first (faster than reading content)
+            $mtime = @filemtime($file);
+            if ($mtime === false || $mtime >= $cutoff) {
+                continue;
+            }
+
+            // Only read file if mtime suggests it's expired
             $raw = @file_get_contents($file);
             if ($raw === false || $raw === '') {
+                @unlink($file);
                 continue;
             }
 
@@ -179,6 +190,8 @@ final class RateLimitModule implements ModuleInterface
             if ($ls > 0 && $ls < $cutoff) {
                 @unlink($file);
             }
+
+            $processed++;
         }
     }
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Bespredel\Wafu\Remote;
 
+use Bespredel\Wafu\Core\Net;
+
 final class HttpClient
 {
 
@@ -15,6 +17,11 @@ final class HttpClient
      */
     public function get(string $url, array $headers = []): array
     {
+        // Validate URL and check for SSRF protection
+        if (!Net::isSafeExternalUrl($url)) {
+            return ['status' => 0, 'headers' => [], 'body' => ''];
+        }
+
         // Use ext-curl if available, otherwise use stream
         if (function_exists('curl_init')) {
             return $this->curlGet($url, $headers);
@@ -39,12 +46,15 @@ final class HttpClient
         }
 
         curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_HTTPHEADER     => $h,
-            CURLOPT_HEADER         => true,
+            CURLOPT_RETURNTRANSFER  => true,
+            CURLOPT_FOLLOWLOCATION  => false,
+            CURLOPT_MAXREDIRS       => 0,
+            CURLOPT_TIMEOUT         => 5,
+            CURLOPT_CONNECTTIMEOUT  => 3,
+            CURLOPT_HTTPHEADER      => $h,
+            CURLOPT_HEADER          => true,
+            CURLOPT_PROTOCOLS       => CURLPROTO_HTTP | CURLPROTO_HTTPS, // Only HTTP/HTTPS
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, // Only HTTP/HTTPS for redirects (if enabled)
         ]);
 
         $raw = curl_exec($ch);
@@ -82,10 +92,12 @@ final class HttpClient
 
         $ctx = stream_context_create([
             'http' => [
-                'method'        => 'GET',
-                'header'        => implode("\r\n", $headerLines),
-                'timeout'       => 5,
-                'ignore_errors' => true,
+                'method'          => 'GET',
+                'header'          => implode("\r\n", $headerLines),
+                'timeout'         => 5,
+                'ignore_errors'   => true,
+                'follow_location' => 0,
+                'max_redirects'   => 0,
             ],
         ]);
 

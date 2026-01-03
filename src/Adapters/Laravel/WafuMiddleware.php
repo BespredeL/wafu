@@ -28,6 +28,8 @@ final class WafuMiddleware
      * @param Closure $next
      *
      * @return Response
+     *
+     * @throws \ReflectionException
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -47,7 +49,7 @@ final class WafuMiddleware
         $context = $result['context'];
         $decision = $result['decision'];
 
-        // PSR-3 logger доступен экшенам
+        // PSR-3 logger is available for action
         $context->setAttribute('psr_logger', $this->logger);
 
         if ($decision->isBlocked()) {

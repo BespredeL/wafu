@@ -38,6 +38,8 @@ final class WafuSubscriber implements EventSubscriberInterface
      * @param RequestEvent $event
      *
      * @return void
+     *
+     * @throws \ReflectionException
      */
     public function onKernelRequest(RequestEvent $event): void
     {

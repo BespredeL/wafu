@@ -8,9 +8,12 @@ use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Decision;
+use Bespredel\Wafu\Helpers\ModuleHelperTrait;
 
 final class HeaderModule implements ModuleInterface
 {
+    use ModuleHelperTrait;
+
     /**
      * @var array
      */
@@ -52,26 +55,15 @@ final class HeaderModule implements ModuleInterface
 
             foreach ($this->compiledPatterns as $pattern) {
                 if (preg_match($pattern, $value) === 1) {
-                    $context->setAttribute('wafu.match', [
+                    $matchData = [
                         'module'  => self::class,
                         'header'  => $headerName,
                         'pattern' => $pattern,
                         'value'   => $this->truncate($value, 512),
-                    ]);
+                    ];
+                    $context->setAttribute('wafu.match', $matchData);
 
-                    $resp = $context->getAttribute('wafu.response');
-                    if (is_array($resp) && isset($resp['status'])) {
-                        return Decision::blockWithResponse(
-                            $this->onMatch,
-                            $this->reason,
-                            (int)$resp['status'],
-                            (array)($resp['headers'] ?? []),
-                            (string)($resp['body'] ?? $this->reason),
-                            ['match' => $context->getAttribute('wafu.match')]
-                        );
-                    }
-
-                    return Decision::block($this->onMatch, $this->reason);
+                    return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
                 }
             }
         }
@@ -79,41 +71,4 @@ final class HeaderModule implements ModuleInterface
         return null;
     }
 
-    /**
-     * @param array $patterns
-     *
-     * @return array
-     */
-    private function validatePatterns(array $patterns): array
-    {
-        $ok = [];
-        foreach ($patterns as $p) {
-            if (!is_string($p) || $p === '') {
-                continue;
-            }
-
-            if (@preg_match($p, '') === false) {
-                continue;
-            }
-
-            $ok[] = $p;
-        }
-
-        return $ok;
-    }
-
-    /**
-     * @param string $s
-     * @param int    $max
-     *
-     * @return string
-     */
-    private function truncate(string $s, int $max): string
-    {
-        if (mb_strlen($s) <= $max) {
-            return $s;
-        }
-
-        return mb_substr($s, 0, $max) . '...';
-    }
 }

@@ -95,4 +95,131 @@ final class Net
 
         return false;
     }
+
+    /**
+     * Validate IP address format (IPv4 or IPv6).
+     *
+     * @param string $ip
+     *
+     * @return bool
+     */
+    public static function isValidIp(string $ip): bool
+    {
+        if ($ip === '') {
+            return false;
+        }
+
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6) !== false;
+    }
+
+    /**
+     * Check if IP address is internal/private (localhost, private ranges, reserved).
+     *
+     * @param string $ip
+     *
+     * @return bool
+     */
+    public static function isInternalIp(string $ip): bool
+    {
+        if ($ip === '') {
+            return true;
+        }
+
+        // Validate IP format first
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return true;
+        }
+
+        // Check for localhost IP variants
+        $localhostIps = ['127.0.0.1', '::1', '0.0.0.0'];
+        if (in_array(strtolower($ip), $localhostIps, true)) {
+            return true;
+        }
+
+        // Check for private/reserved IP ranges
+        return !filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+    }
+
+    /**
+     * Check if hostname resolves to internal IP address.
+     *
+     * @param string $hostname
+     *
+     * @return bool
+     */
+    public static function isInternalHost(string $hostname): bool
+    {
+        if ($hostname === '') {
+            return true;
+        }
+
+        $hostname = strtolower(trim($hostname));
+
+        // Check for localhost variants
+        $localhostPatterns = ['localhost', '127.0.0.1', '::1', '0.0.0.0', 'localhost.localdomain'];
+        if (in_array($hostname, $localhostPatterns, true)) {
+            return true;
+        }
+
+        // Check if hostname is an IP address
+        if (filter_var($hostname, FILTER_VALIDATE_IP) !== false) {
+            return self::isInternalIp($hostname);
+        }
+
+        // Resolve hostname to IP
+        $ip = @gethostbyname($hostname);
+        if ($ip === $hostname || $ip === '') {
+            // Failed to resolve - consider as internal for safety
+            return true;
+        }
+
+        return self::isInternalIp($ip);
+    }
+
+    /**
+     * Validate URL and check if it's safe for external requests (not internal).
+     *
+     * @param string $url
+     *
+     * @return bool
+     */
+    public static function isSafeExternalUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        // Validate URL format
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+
+        $parsed = parse_url($url);
+        if ($parsed === false || !isset($parsed['scheme'])) {
+            return false;
+        }
+
+        // Only allow HTTP and HTTPS
+        $scheme = strtolower($parsed['scheme']);
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        // Check host
+        $host = $parsed['host'] ?? '';
+        if ($host === '') {
+            return false;
+        }
+
+        // Check if host is internal
+        if (self::isInternalHost($host)) {
+            return false;
+        }
+
+        return true;
+    }
 }

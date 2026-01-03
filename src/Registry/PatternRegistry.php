@@ -9,9 +9,14 @@ use RuntimeException;
 final class PatternRegistry
 {
     /**
-     * @var array
+     * @var array Original patterns config
      */
     private array $patternsConfig;
+
+    /**
+     * @var array Validated and cached patterns
+     */
+    private array $validatedPatterns = [];
 
     /**
      * @param array $patternsConfig
@@ -19,6 +24,38 @@ final class PatternRegistry
     public function __construct(array $patternsConfig)
     {
         $this->patternsConfig = $patternsConfig;
+        $this->validateAllPatterns();
+    }
+
+    /**
+     * Validate all patterns once during construction.
+     *
+     * @return void
+     */
+    private function validateAllPatterns(): void
+    {
+        foreach ($this->patternsConfig as $name => $set) {
+            if (!is_array($set)) {
+                throw new RuntimeException("Pattern set '{$name}' must be an array of regex strings");
+            }
+
+            $validated = [];
+            foreach ($set as $i => $pattern) {
+                if (!is_string($pattern) || $pattern === '') {
+                    throw new RuntimeException("Pattern '{$name}' at index {$i} must be a non-empty string");
+                }
+
+                // Validate regex pattern
+                if (@preg_match($pattern, '') === false) {
+                    // Skip invalid patterns but don't fail - allow graceful degradation
+                    continue;
+                }
+
+                $validated[] = $pattern;
+            }
+
+            $this->validatedPatterns[$name] = $validated;
+        }
     }
 
     /**
@@ -30,23 +67,11 @@ final class PatternRegistry
      */
     public function get(string $name): array
     {
-        if (!isset($this->patternsConfig[$name])) {
+        if (!isset($this->validatedPatterns[$name])) {
             throw new RuntimeException("Pattern set '{$name}' is not defined in config");
         }
 
-        $set = $this->patternsConfig[$name];
-
-        if (!is_array($set)) {
-            throw new RuntimeException("Pattern set '{$name}' must be an array of regex strings");
-        }
-
-        foreach ($set as $i => $pattern) {
-            if (!is_string($pattern) || $pattern === '') {
-                throw new RuntimeException("Pattern '{$name}' at index {$i} must be a non-empty string");
-            }
-        }
-
-        return array_values($set);
+        return $this->validatedPatterns[$name];
     }
 
     /**
@@ -56,6 +81,6 @@ final class PatternRegistry
      */
     public function all(): array
     {
-        return $this->patternsConfig;
+        return $this->validatedPatterns;
     }
 }

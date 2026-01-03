@@ -65,11 +65,12 @@ final class Engine
                 continue;
             }
 
-            if ($decision->getAction() !== null) {
-                $decision->getAction()->execute($context);
-            }
-
             if ($decision->isBlocked()) {
+                // Execute action if present
+                if ($decision->getAction() !== null) {
+                    $decision->getAction()->execute($context);
+                }
+
                 // report-only: does not block, but retains auditing
                 if ($this->mode === self::MODE_REPORT) {
                     $context->setAttribute('wafu.report_only', true);
@@ -84,6 +85,11 @@ final class Engine
                 }
 
                 return $decision;
+            }
+
+            // Execute action for non-blocking decisions
+            if ($decision->getAction() !== null) {
+                $decision->getAction()->execute($context);
             }
         }
 

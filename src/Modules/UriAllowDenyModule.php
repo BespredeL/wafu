@@ -12,6 +12,16 @@ use Bespredel\Wafu\Core\Decision;
 final class UriAllowDenyModule implements ModuleInterface
 {
     /**
+     * @var array
+     */
+    private array $validatedAllowRegex = [];
+
+    /**
+     * @var array
+     */
+    private array $validatedDenyRegex = [];
+
+    /**
      * Logic:
      * - if allow is set, and the uri does not match any allow => deny
      * - if deny is set, and the uri matches any deny => deny
@@ -24,14 +34,16 @@ final class UriAllowDenyModule implements ModuleInterface
      * @param string               $reason      reason
      */
     public function __construct(
-        private array            $allowRegex = [],
-        private array            $denyRegex = [],
+        array                    $allowRegex = [],
+        array                    $denyRegex = [],
         private array            $allowPrefix = [],
         private array            $denyPrefix = [],
         private ?ActionInterface $onDeny = null,
         private string           $reason = 'URI is not allowed'
     )
     {
+        $this->validatedAllowRegex = $this->validatePatterns($allowRegex);
+        $this->validatedDenyRegex = $this->validatePatterns($denyRegex);
     }
 
     /**
@@ -55,29 +67,21 @@ final class UriAllowDenyModule implements ModuleInterface
         }
 
         // deny regex
-        foreach ($this->denyRegex as $rx) {
-            if (!is_string($rx) || $rx === '' || @preg_match($rx, '') === false) {
-                continue;
-            }
-
+        foreach ($this->validatedDenyRegex as $rx) {
             if (preg_match($rx, $uri) === 1) {
                 return $this->deny($context, $uri, 'denyRegex', $rx);
             }
         }
 
         // allow prefix/regex logic
-        if ($this->allowPrefix !== [] || $this->allowRegex !== []) {
+        if ($this->allowPrefix !== [] || $this->validatedAllowRegex !== []) {
             foreach ($this->allowPrefix as $p) {
                 if (is_string($p) && $p !== '' && str_starts_with($uri, $p)) {
                     return null;
                 }
             }
 
-            foreach ($this->allowRegex as $rx) {
-                if (!is_string($rx) || $rx === '' || @preg_match($rx, '') === false) {
-                    continue;
-                }
-
+            foreach ($this->validatedAllowRegex as $rx) {
                 if (preg_match($rx, $uri) === 1) {
                     return null;
                 }
@@ -108,5 +112,31 @@ final class UriAllowDenyModule implements ModuleInterface
         ]);
 
         return Decision::block($this->onDeny, $this->reason);
+    }
+
+    /**
+     * Validate and filter regex patterns.
+     *
+     * @param array $patterns
+     *
+     * @return array
+     */
+    private function validatePatterns(array $patterns): array
+    {
+        $validated = [];
+        foreach ($patterns as $pattern) {
+            if (!is_string($pattern) || $pattern === '') {
+                continue;
+            }
+
+            // Validate regex pattern
+            if (@preg_match($pattern, '') === false) {
+                continue;
+            }
+
+            $validated[] = $pattern;
+        }
+
+        return $validated;
     }
 }

@@ -42,6 +42,16 @@ final class Context
     private array $attributes = [];
 
     /**
+     * @var array|null Cached flattened payload
+     */
+    private ?array $cachedFlattenedPayload = null;
+
+    /**
+     * @var array|null Cached payload
+     */
+    private ?array $cachedPayload = null;
+
+    /**
      * @param array $server                $_SERVER or adapted array
      * @param array $query                 $_GET
      * @param array $body                  $_POST / parsed body
@@ -149,7 +159,11 @@ final class Context
      */
     public function getPayload(): array
     {
-        return array_merge_recursive($this->query, $this->body, $this->cookies);
+        if ($this->cachedPayload !== null) {
+            return $this->cachedPayload;
+        }
+
+        return $this->cachedPayload = array_merge_recursive($this->query, $this->body, $this->cookies);
     }
 
     /**
@@ -157,6 +171,10 @@ final class Context
      */
     public function getFlattenedPayload(): array
     {
+        if ($this->cachedFlattenedPayload !== null) {
+            return $this->cachedFlattenedPayload;
+        }
+
         $result = [];
 
         $iterator = function ($data) use (&$result, &$iterator) {
@@ -171,7 +189,7 @@ final class Context
 
         $iterator($this->getPayload());
 
-        return $result;
+        return $this->cachedFlattenedPayload = $result;
     }
 
     /**
@@ -252,8 +270,8 @@ final class Context
 
         foreach ($server as $key => $value) {
             if (str_starts_with($key, 'HTTP_')) {
-                $name = strtolower(str_replace('_', '-', substr($key, 5)));
-                $headers[$name] = (string)$value;
+                $name = str_replace('_', '-', substr($key, 5));
+                $headers[strtolower($name)] = (string)$value;
             }
         }
 

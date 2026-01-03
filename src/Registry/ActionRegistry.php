@@ -21,6 +21,11 @@ final class ActionRegistry
     private array $instances = [];
 
     /**
+     * @var array Cache for camelCase to snake_case conversions
+     */
+    private static array $snakeCaseCache = [];
+
+    /**
      * @param array $actionsConfig
      */
     public function __construct(array $actionsConfig)
@@ -100,14 +105,13 @@ final class ActionRegistry
         foreach ($params as $param) {
             $name = $param->getName();
 
-            // allow snake_case keys in the config
-            $snake = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
-
             if (array_key_exists($name, $cfg)) {
                 $args[] = $cfg[$name];
                 continue;
             }
 
+            // Use cached snake_case conversion
+            $snake = self::toSnakeCase($name);
             if (array_key_exists($snake, $cfg)) {
                 $args[] = $cfg[$snake];
                 continue;
@@ -124,5 +128,24 @@ final class ActionRegistry
         }
 
         return $ref->newInstanceArgs($args);
+    }
+
+    /**
+     * Convert camelCase to snake_case with caching.
+     *
+     * @param string $name
+     *
+     * @return string
+     */
+    private static function toSnakeCase(string $name): string
+    {
+        if (isset(self::$snakeCaseCache[$name])) {
+            return self::$snakeCaseCache[$name];
+        }
+
+        $snake = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
+        self::$snakeCaseCache[$name] = $snake;
+
+        return $snake;
     }
 }
