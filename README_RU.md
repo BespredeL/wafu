@@ -1,5 +1,9 @@
 # WAFU (Web Application Firewall Universal)
 
+[![Readme EN](https://img.shields.io/badge/README-EN-blue.svg)](https://github.com/BespredeL/wafu/blob/master/README.md)
+[![Readme RU](https://img.shields.io/badge/README-RU-blue.svg)](https://github.com/BespredeL/wafu/blob/master/README_RU.md)
+[![GitHub license](https://img.shields.io/badge/license-MIT-458a7b.svg)](https://github.com/BespredeL/wafu/blob/master/LICENSE)
+
 WAFU - это **модульный Web Application Firewall** для PHP 8.1+,
 управляемый полностью через конфигурацию.
 
