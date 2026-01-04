@@ -30,7 +30,7 @@ return [
      | enforce - block
      | report - log only (recommended for initial testing)
      */
-    'mode'                    => 'report',
+    'mode'                    => 'enforce',
 
     /*
     |--------------------------------------------------------------------------
@@ -139,7 +139,7 @@ return [
          */
         'xss_basic'      => [
             '/<\s*script\b/i',
-            '/on\w+\s*=/i',
+            //'/on\w+\s*=/i',
             '/javascript\s*:/i',
             '/<\s*img\b[^>]*\bonerror\s*=/i',
             '/document\.cookie/i',
@@ -313,7 +313,13 @@ return [
          */
         'rce'              => [
             'class'    => RceModule::class,
-            'targets'  => ['query', 'body', 'cookies', 'headers', 'uri'],
+            'targets'  => [
+                'query',
+                'body',
+                'cookies',
+                //'headers',
+                'uri',
+            ],
             'patterns' => ['rce_signatures'],
             'on_match' => 'block',
         ],

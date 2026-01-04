@@ -54,7 +54,6 @@
             ],
             "xss_basic": [
                 "/<\\s*script\\b/i",
-                "/on\\w+\\s*=/i",
                 "/javascript\\s*:/i",
                 "/<\\s*img\\b[^>]*\\bonerror\\s*=/i",
                 "/document\\.cookie/i"
@@ -162,7 +161,6 @@
                     "query",
                     "body",
                     "cookies",
-                    "headers",
                     "uri"
                 ],
                 "patterns": [
