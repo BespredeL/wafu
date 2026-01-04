@@ -27,7 +27,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "WafuServiceProvider"
+                "Bespredel\\Wafu\\Adapters\\Laravel\\WafuServiceProvider"
             ]
         }
     },
