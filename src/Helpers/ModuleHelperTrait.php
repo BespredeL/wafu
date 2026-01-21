@@ -79,7 +79,7 @@ trait ModuleHelperTrait
     {
         $result = [];
 
-        $walk = function ($value) use (&$result, &$walk) {
+        $walk = static function ($value) use (&$result, &$walk) {
             if (is_array($value)) {
                 foreach ($value as $v) {
                     $walk($v);

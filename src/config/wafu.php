@@ -202,15 +202,15 @@ return [
          * RCE
          */
         'rce_signatures' => [
-            // разделители/обходы
+            // Separators/Traversaries
             '/(;|\|\||&&|\||`|\$\(|\${|\%60)/',
             '/\b(?:bash|sh|cmd|powershell|pwsh)\b/i',
 
-            // типичные утилиты для загрузки/исполнения
+            // Typical Download/Execute Utilities
             '/\b(?:curl|wget|fetch|tftp)\b/i',
             '/\b(?:nc|netcat|ncat|socat)\b/i',
 
-            // inline исполнение
+            // Inline Execution
             '/\bpython\s*-c\b/i',
             '/\bperl\s*-e\b/i',
             '/\bphp\s*-r\b/i',

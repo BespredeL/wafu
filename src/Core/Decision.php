@@ -9,36 +9,50 @@ use Bespredel\Wafu\Contracts\ActionInterface;
 final class Decision
 {
     /**
+     * Whether the request is blocked or not.
+     *
      * @var bool
      */
     private bool $blocked;
 
     /**
+     * Reason for decision.
+     *
      * @var string
      */
     private string $reason;
 
     /**
+     * Action to be executed.
+     *
      * @var ActionInterface|null
      */
     private ?ActionInterface $action;
 
     /**
+     * HTTP status code.
+     *
      * @var int
      */
     private int $status;
 
     /**
+     * HTTP headers.
+     *
      * @var array
      */
     private array $headers;
 
     /**
+     * Response body.
+     *
      * @var string|null
      */
     private ?string $body;
 
     /**
+     * Meta data.
+     *
      * @var array
      */
     private array $meta;
@@ -72,6 +86,8 @@ final class Decision
     }
 
     /**
+     * Allow request.
+     *
      * @return self
      */
     public static function allow(): self
@@ -80,6 +96,8 @@ final class Decision
     }
 
     /**
+     * Block request.
+     *
      * @param ActionInterface $action
      * @param string          $reason
      *
@@ -91,6 +109,8 @@ final class Decision
     }
 
     /**
+     * Allow request with a custom action.
+     *
      * @param ActionInterface $action
      * @param string          $reason
      *
@@ -126,6 +146,8 @@ final class Decision
     }
 
     /**
+     * Check if request is blocked.
+     *
      * @return bool
      */
     public function isBlocked(): bool
@@ -134,6 +156,8 @@ final class Decision
     }
 
     /**
+     * Get reason for decision.
+     *
      * @return string
      */
     public function getReason(): string
@@ -142,6 +166,8 @@ final class Decision
     }
 
     /**
+     * Get action for decision.
+     *
      * @return ActionInterface|null
      */
     public function getAction(): ?ActionInterface
@@ -150,6 +176,8 @@ final class Decision
     }
 
     /**
+     * Get HTTP status code.
+     *
      * @return int
      */
     public function getStatus(): int
@@ -158,6 +186,8 @@ final class Decision
     }
 
     /**
+     * Get HTTP headers.
+     *
      * @return array
      */
     public function getHeaders(): array
@@ -166,6 +196,8 @@ final class Decision
     }
 
     /**
+     * Get response body.
+     *
      * @return string|null
      */
     public function getBody(): ?string
@@ -174,6 +206,8 @@ final class Decision
     }
 
     /**
+     * Get meta data.
+     *
      * @return array
      */
     public function getMeta(): array

@@ -25,6 +25,8 @@ final class WafuSubscriber implements EventSubscriberInterface
     }
 
     /**
+     * Get subscribed events.
+     *
      * @return array[]
      */
     public static function getSubscribedEvents(): array
@@ -35,6 +37,8 @@ final class WafuSubscriber implements EventSubscriberInterface
     }
 
     /**
+     * Handle kernel request.
+     *
      * @param RequestEvent $event
      *
      * @return void

@@ -10,6 +10,8 @@ final class HttpClient
 {
 
     /**
+     * Get HTTP response.
+     *
      * @param string $url
      * @param array  $headers
      *
@@ -31,6 +33,8 @@ final class HttpClient
     }
 
     /**
+     * Get HTTP response using cURL.
+     *
      * @param string $url
      * @param array  $headers
      *
@@ -78,6 +82,8 @@ final class HttpClient
     }
 
     /**
+     * Get HTTP response using stream.
+     *
      * @param string $url
      * @param array  $headers
      *
@@ -123,6 +129,8 @@ final class HttpClient
     }
 
     /**
+     * Parse HTTP headers.
+     *
      * @param string $raw
      *
      * @return array

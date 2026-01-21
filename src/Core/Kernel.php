@@ -14,26 +14,36 @@ use Bespredel\Wafu\Remote\RulesManager;
 final class Kernel
 {
     /**
+     * Configuration.
+     *
      * @var array
      */
     private array $config;
 
     /**
+     * Action registry.
+     *
      * @var ActionRegistry
      */
     private ActionRegistry $actionRegistry;
 
     /**
+     * Module registry.
+     *
      * @var ModuleRegistry
      */
     private ModuleRegistry $moduleRegistry;
 
     /**
+     * Pattern registry.
+     *
      * @var PatternRegistry
      */
     private PatternRegistry $patternRegistry;
 
     /**
+     * Engine.
+     *
      * @var Engine
      */
     private Engine $engine;
@@ -75,6 +85,8 @@ final class Kernel
     }
 
     /**
+     * Handle request.
+     *
      * @param array $server
      * @param array $query
      * @param array $body
@@ -97,6 +109,8 @@ final class Kernel
     }
 
     /**
+     * Handle request with context.
+     *
      * @param array $server
      * @param array $query
      * @param array $body
@@ -141,6 +155,8 @@ final class Kernel
     }
 
     /**
+     * Get configuration.
+     *
      * @return array
      */
     public function getConfig(): array
@@ -149,6 +165,8 @@ final class Kernel
     }
 
     /**
+     * Get engine.
+     *
      * @return Engine
      */
     public function getEngine(): Engine
@@ -157,6 +175,8 @@ final class Kernel
     }
 
     /**
+     * Load remote config if enabled.
+     *
      * @param array $local
      *
      * @return array|null
@@ -187,6 +207,8 @@ final class Kernel
     }
 
     /**
+     * Merge local and remote configs.
+     *
      * @param array      $local
      * @param array|null $remote
      *

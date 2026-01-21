@@ -24,6 +24,8 @@ final class WafuMiddleware
     }
 
     /**
+     * Handle the incoming request.
+     *
      * @param Request $request
      * @param Closure $next
      *

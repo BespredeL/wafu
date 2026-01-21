@@ -15,6 +15,8 @@ final class LfiModule implements ModuleInterface
     use ModuleHelperTrait;
 
     /**
+     * Compiled patterns.
+     *
      * @var array
      */
     private array $compiledPatterns = [];
@@ -37,6 +39,8 @@ final class LfiModule implements ModuleInterface
     }
 
     /**
+     * Handle request.
+     *
      * @param Context $context
      *
      * @return Decision|null

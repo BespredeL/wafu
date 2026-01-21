@@ -10,6 +10,8 @@ use Illuminate\Support\ServiceProvider;
 final class WafuServiceProvider extends ServiceProvider
 {
     /**
+     * Register the service provider.
+     *
      * @return void
      */
     public function register(): void
@@ -26,6 +28,8 @@ final class WafuServiceProvider extends ServiceProvider
     }
 
     /**
+     * Bootstrap the application events.
+     *
      * @return void
      */
     public function boot(): void

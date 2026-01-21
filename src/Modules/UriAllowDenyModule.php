@@ -12,11 +12,15 @@ use Bespredel\Wafu\Core\Decision;
 final class UriAllowDenyModule implements ModuleInterface
 {
     /**
+     * Compiled regex patterns.
+     *
      * @var array
      */
     private array $validatedAllowRegex = [];
 
     /**
+     * Compiled regex patterns.
+     *
      * @var array
      */
     private array $validatedDenyRegex = [];
@@ -47,6 +51,8 @@ final class UriAllowDenyModule implements ModuleInterface
     }
 
     /**
+     * Handle request.
+     *
      * @param Context $context
      *
      * @return Decision|null
@@ -95,6 +101,8 @@ final class UriAllowDenyModule implements ModuleInterface
     }
 
     /**
+     * Deny request.
+     *
      * @param Context $context
      * @param string  $uri
      * @param string  $type

@@ -25,6 +25,8 @@ final class MethodAllowlistModule implements ModuleInterface
     }
 
     /**
+     * Handle request.
+     *
      * @param Context $context
      *
      * @return Decision|null

@@ -15,6 +15,8 @@ final class RegexMatchModule implements ModuleInterface
     use ModuleHelperTrait;
 
     /**
+     * Compiled patterns.
+     *
      * @var array
      */
     private array $compiledPatterns = [];
@@ -36,6 +38,8 @@ final class RegexMatchModule implements ModuleInterface
     }
 
     /**
+     * Handle request.
+     *
      * @param Context $context
      *
      * @return Decision|null

@@ -9,11 +9,15 @@ use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Helpers\ModuleHelperTrait;
+use Random\RandomException;
 
 final class RateLimitModule implements ModuleInterface
 {
     use ModuleHelperTrait;
+
     /**
+     * Storage directory for rate limit data.
+     *
      * @var string
      */
     private string $storageDir;
@@ -39,38 +43,45 @@ final class RateLimitModule implements ModuleInterface
         private int              $ttlMultiplier = 5     // ttl = interval * ttlMultiplier
     )
     {
-        $this->storageDir = $storageDir ?: (rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-rl');
-    }
-
-    /**
-     * @param Context $context
-     *
-     * @return Decision|null
-     */
-    public function handle(Context $context): ?Decision
-    {
-        if ($this->onExceed === null) {
-            return null;
-        }
-
-        if ($this->limit <= 0 || $this->interval <= 0) {
-            return null;
-        }
-
-        $this->maybeGc();
-
-        $key = $this->buildKey($context);
-        $file = $this->filePath($key);
-        $now = time();
-        $windowStart = $now - $this->interval;
+        $this->storageDir = $storageDir
+            ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-rl';
 
         if (!is_dir($this->storageDir)) {
-            if (!mkdir($concurrentDirectory = $this->storageDir, 0775, true) && !is_dir($concurrentDirectory)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
+            if (!mkdir($this->storageDir, 0775, true) && !is_dir($this->storageDir)) {
+                throw new \RuntimeException('RateLimit storage directory cannot be created');
             }
         }
 
-        $fp = @fopen($file, 'cb+');
+        if (!is_writable($this->storageDir)) {
+            throw new \RuntimeException('RateLimit storage directory is not writable');
+        }
+    }
+
+    /**
+     * Handle request.
+     *
+     * @param Context $context
+     *
+     * @return Decision|null
+     *
+     * @throws RandomException
+     */
+    public function handle(Context $context): ?Decision
+    {
+        if ($this->onExceed === null || $this->limit <= 0 || $this->interval <= 0) {
+            return null;
+        }
+
+        $this->cleanupExpiredRateLimitEntries();
+
+        $key = $this->buildKey($context);
+        $file = $this->filePath($key);
+
+        $now = time();
+        $windowStart = $now - $this->interval;
+        $timestamps = [];
+
+        $fp = fopen($file, 'cb+');
         if ($fp === false) {
             return null;
         }
@@ -81,14 +92,9 @@ final class RateLimitModule implements ModuleInterface
             }
 
             $raw = stream_get_contents($fp);
-            $data = $raw ? json_decode($raw, true) : null;
-
-            $timestamps = [];
-            $lastSeen = 0;
-
-            if (is_array($data)) {
-                $lastSeen = isset($data['ls']) ? (int)$data['ls'] : 0;
-                if (isset($data['t']) && is_array($data['t'])) {
+            if ($raw !== false && $raw !== '') {
+                $data = json_decode($raw, true);
+                if (json_last_error() === JSON_ERROR_NONE && isset($data['t']) && is_array($data['t'])) {
                     foreach ($data['t'] as $ts) {
                         $ts = (int)$ts;
                         if ($ts >= $windowStart) {
@@ -100,13 +106,12 @@ final class RateLimitModule implements ModuleInterface
 
             $timestamps[] = $now;
 
-            // cap memory: keep only last (limit + 20) timestamps
             $cap = max($this->limit + 20, 50);
             if (count($timestamps) > $cap) {
                 $timestamps = array_slice($timestamps, -$cap);
             }
 
-            $exceeded = (count($timestamps) > $this->limit);
+            $exceeded = count($timestamps) > $this->limit;
 
             $this->rewrite($fp, [
                 't'  => $timestamps,
@@ -120,82 +125,60 @@ final class RateLimitModule implements ModuleInterface
                     'limit'    => $this->limit,
                     'interval' => $this->interval,
                 ];
+
                 $context->setAttribute('wafu.match', $matchData);
 
-                return $this->createDecision($context, $this->onExceed, $this->reason, $matchData);
+                return $this->createDecision(
+                    $context,
+                    $this->onExceed,
+                    $this->reason,
+                    $matchData
+                );
             }
         }
         finally {
-            @flock($fp, LOCK_UN);
-            @fclose($fp);
+            flock($fp, LOCK_UN);
+            fclose($fp);
         }
 
         return null;
     }
 
     /**
+     * Maybe perform garbage collection.
+     *
      * @return void
+     *
+     * @throws RandomException
      */
-    private function maybeGc(): void
+    private function cleanupExpiredRateLimitEntries(): void
     {
-        if ($this->gcProbability <= 0) {
+        if ($this->gcProbability <= 0 || random_int(1, $this->gcProbability) !== 1) {
             return;
         }
 
-        if (random_int(1, $this->gcProbability) !== 1) {
-            return;
-        }
+        $cutoff = time() - ($this->interval * max(1, $this->ttlMultiplier));
 
-        $ttl = $this->interval * max(1, $this->ttlMultiplier);
-        $cutoff = time() - $ttl;
-
-        if (!is_dir($this->storageDir)) {
-            return;
-        }
-
-        // Limit the number of files processed per GC run to avoid blocking
-        $maxFilesPerGc = 100;
-        $pattern = rtrim($this->storageDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.json';
-        $files = @glob($pattern) ?: [];
-
-        // Limit processing to avoid long GC runs
-        if (count($files) > $maxFilesPerGc) {
-            // Shuffle to ensure we don't always process the same files
-            shuffle($files);
-            $files = array_slice($files, 0, $maxFilesPerGc);
-        }
-
-        $processed = 0;
-        foreach ($files as $file) {
-            if (!is_string($file) || !is_file($file)) {
+        foreach (glob($this->storageDir . DIRECTORY_SEPARATOR . '*.json') ?: [] as $file) {
+            if (!is_file($file)) {
                 continue;
             }
 
-            // Check file modification time first (faster than reading content)
-            $mtime = @filemtime($file);
-            if ($mtime === false || $mtime >= $cutoff) {
-                continue;
-            }
-
-            // Only read file if mtime suggests it's expired
-            $raw = @file_get_contents($file);
-            if ($raw === false || $raw === '') {
-                @unlink($file);
+            $raw = file_get_contents($file);
+            if ($raw === false) {
                 continue;
             }
 
             $data = json_decode($raw, true);
-            $ls = is_array($data) && isset($data['ls']) ? (int)$data['ls'] : 0;
-
-            if ($ls > 0 && $ls < $cutoff) {
-                @unlink($file);
+            if (json_last_error() === JSON_ERROR_NONE && isset($data['ls']) && (int)$data['ls'] < $cutoff) {
+                unlink($file);
             }
-
-            $processed++;
         }
     }
 
     /**
+     * Rewrite file content.
+     *
      * @param       $fp
      * @param array $payload
      *
@@ -210,26 +193,33 @@ final class RateLimitModule implements ModuleInterface
     }
 
     /**
+     * Build key based on context.
+     *
      * @param Context $context
      *
      * @return string
      */
     private function buildKey(Context $context): string
     {
-        return match ($this->keyBy) {
-            'ip+uri' => $context->getIp() . '|' . $context->getUri(),
-            default => $context->getIp(),
-        };
+        if ($this->keyBy === 'ip+uri') {
+            return $context->getIp() . '|' . $context->getUri();
+        }
+
+        return $context->getIp();
     }
 
     /**
+     * Build file path based on key.
+     *
      * @param string $key
      *
      * @return string
      */
     private function filePath(string $key): string
     {
-        $hash = hash('sha256', $key);
-        return rtrim($this->storageDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $hash . '.json';
+        return $this->storageDir
+            . DIRECTORY_SEPARATOR
+            . hash('sha256', $key)
+            . '.json';
     }
 }

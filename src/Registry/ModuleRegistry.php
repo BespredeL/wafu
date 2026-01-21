@@ -11,26 +11,37 @@ use ReflectionClass;
 final class ModuleRegistry
 {
     /**
+     * Modules config.
+     *
      * @var array
      */
     private array $modulesConfig;
 
     /**
+     * Action registry.
+     *
      * @var ActionRegistry
      */
     private ActionRegistry $actionRegistry;
+
     /**
+     * Pattern registry.
+     *
      * @var PatternRegistry
      */
     private PatternRegistry $patternRegistry;
 
     /**
+     * Cached module instances.
+     *
      * @var array
      */
     private array $instances = [];
 
     /**
-     * @var array Cache for camelCase to snake_case conversions
+     * Cache for camelCase to snake_case conversions
+     *
+     * @var array
      */
     private static array $snakeCaseCache = [];
 
@@ -233,7 +244,7 @@ final class ModuleRegistry
                 continue;
             }
 
-            // otherwise it is the name of the set
+            // Otherwise it is the name of the set
             $set = $this->patternRegistry->get($item);
             foreach ($set as $rx) {
                 $expanded[] = $rx;

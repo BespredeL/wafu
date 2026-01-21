@@ -11,17 +11,23 @@ use ReflectionClass;
 final class ActionRegistry
 {
     /**
+     * Actions config.
+     *
      * @var array
      */
     private array $actionsConfig;
 
     /**
+     * Cached Action instances.
+     *
      * @var array
      */
     private array $instances = [];
 
     /**
-     * @var array Cache for camelCase to snake_case conversions
+     * Cache for camelCase to snake_case conversions.
+     *
+     * @var array
      */
     private static array $snakeCaseCache = [];
 

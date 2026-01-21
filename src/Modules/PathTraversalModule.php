@@ -15,6 +15,8 @@ final class PathTraversalModule implements ModuleInterface
     use ModuleHelperTrait;
 
     /**
+     * Compiled patterns.
+     *
      * @var array
      */
     private array $compiledPatterns = [];
@@ -37,6 +39,8 @@ final class PathTraversalModule implements ModuleInterface
     }
 
     /**
+     * Handle request.
+     *
      * @param Context $context
      *
      * @return Decision|null
@@ -78,7 +82,7 @@ final class PathTraversalModule implements ModuleInterface
 
     /**
      * Traversal signatures:
-     * - ../ и ..\\
+     * - ../ and ..\\
      * - urlencoded variants: %2e%2e%2f, %2e%2e%5c
      * - double-encoding: %252e%252e%252f
      *

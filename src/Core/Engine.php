@@ -13,16 +13,22 @@ final class Engine
     public const MODE_REPORT  = 'report';
 
     /**
+     * Module registry.
+     *
      * @var ModuleRegistry
      */
     private ModuleRegistry $moduleRegistry;
 
     /**
+     * Pipeline of modules to be executed.
+     *
      * @var array
      */
     private array $pipeline;
 
     /**
+     * Mode of operation.
+     *
      * @var string
      */
     private string $mode;
@@ -44,6 +50,8 @@ final class Engine
     }
 
     /**
+     * Run WAFU engine.
+     *
      * @param Context $context
      *
      * @return Decision

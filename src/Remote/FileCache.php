@@ -18,6 +18,8 @@ final class FileCache
     }
 
     /**
+     * Get cache file path.
+     *
      * @return string
      */
     public function path(): string
@@ -26,6 +28,8 @@ final class FileCache
     }
 
     /**
+     * Check if cache file exists.
+     *
      * @return bool
      */
     public function exists(): bool
@@ -34,6 +38,8 @@ final class FileCache
     }
 
     /**
+     * Read cache file.
+     *
      * @return array|null
      */
     public function read(): ?array
@@ -54,6 +60,8 @@ final class FileCache
     }
 
     /**
+     * Write cache file.
+     *
      * @param array $payload
      *
      * @return void
@@ -80,6 +88,8 @@ final class FileCache
     }
 
     /**
+     * Check if cache is fresh.
+     *
      * @param int $now
      * @param int $fetchedAt
      * @param int $ttl

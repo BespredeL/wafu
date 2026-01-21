@@ -88,6 +88,8 @@ final class Context
     }
 
     /**
+     * Get client IP address.
+     *
      * @return string
      */
     public function getIp(): string
@@ -96,6 +98,8 @@ final class Context
     }
 
     /**
+     * Get HTTP method.
+     *
      * @return string
      */
     public function getMethod(): string
@@ -104,6 +108,8 @@ final class Context
     }
 
     /**
+     * Get requested URI.
+     *
      * @return string
      */
     public function getUri(): string
@@ -112,6 +118,8 @@ final class Context
     }
 
     /**
+     * Get HTTP headers.
+     *
      * @return array
      */
     public function getHeaders(): array
@@ -120,6 +128,8 @@ final class Context
     }
 
     /**
+     * Get HTTP header value.
+     *
      * @param string $name
      *
      * @return string|null
@@ -131,6 +141,8 @@ final class Context
     }
 
     /**
+     * Get query parameters.
+     *
      * @return array
      */
     public function getQuery(): array
@@ -139,6 +151,8 @@ final class Context
     }
 
     /**
+     * Get request body.
+     *
      * @return array
      */
     public function getBody(): array
@@ -147,6 +161,8 @@ final class Context
     }
 
     /**
+     * Get cookies.
+     *
      * @return array
      */
     public function getCookies(): array
@@ -155,6 +171,8 @@ final class Context
     }
 
     /**
+     * Get merged query, body and cookies.
+     *
      * @return array
      */
     public function getPayload(): array
@@ -167,6 +185,8 @@ final class Context
     }
 
     /**
+     * Get flattened payload.
+     *
      * @return array
      */
     public function getFlattenedPayload(): array
@@ -177,7 +197,7 @@ final class Context
 
         $result = [];
 
-        $iterator = function ($data) use (&$result, &$iterator) {
+        $iterator = static function ($data) use (&$result, &$iterator) {
             foreach ($data as $value) {
                 if (is_array($value)) {
                     $iterator($value);
@@ -193,6 +213,8 @@ final class Context
     }
 
     /**
+     * Set attribute.
+     *
      * @param string $key
      * @param mixed  $value
      *
@@ -204,6 +226,8 @@ final class Context
     }
 
     /**
+     * Get attribute.
+     *
      * @param string     $key
      * @param mixed|null $default
      *
@@ -215,6 +239,8 @@ final class Context
     }
 
     /**
+     * Resolve client IP address.
+     *
      * @param array $server
      * @param array $headers
      * @param array $trustedProxies
@@ -260,6 +286,8 @@ final class Context
     }
 
     /**
+     * Extract HTTP headers from $_SERVER.
+     *
      * @param array $server
      *
      * @return array

@@ -22,6 +22,8 @@ final class LogAction implements ActionInterface
     }
 
     /**
+     * Execute action.
+     *
      * @param Context $context
      *
      * @return void

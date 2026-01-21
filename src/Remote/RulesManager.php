@@ -123,6 +123,8 @@ final class RulesManager
     }
 
     /**
+     * Validate ruleset.
+     *
      * @param array $ruleset
      *
      * @return void
@@ -135,6 +137,8 @@ final class RulesManager
     }
 
     /**
+     * Verify signature if enabled.
+     *
      * @param array $ruleset
      *
      * @return void

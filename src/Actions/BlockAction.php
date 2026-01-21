@@ -23,6 +23,8 @@ final class BlockAction implements ActionInterface
     }
 
     /**
+     * Execute action.
+     *
      * @param Context $context
      *
      * @return void

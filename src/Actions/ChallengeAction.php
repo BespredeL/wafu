@@ -25,6 +25,8 @@ final class ChallengeAction implements ActionInterface
     }
 
     /**
+     * Execute action.
+     *
      * @param Context $context
      *
      * @return void

@@ -9,12 +9,16 @@ use RuntimeException;
 final class PatternRegistry
 {
     /**
-     * @var array Original patterns config
+     * Original patterns config
+     *
+     * @var array
      */
     private array $patternsConfig;
 
     /**
-     * @var array Validated and cached patterns
+     * Validated and cached patterns
+     *
+     * @var array
      */
     private array $validatedPatterns = [];
 

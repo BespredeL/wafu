@@ -16,12 +16,16 @@ final class IpBlocklistModule implements ModuleInterface
     use ModuleHelperTrait;
 
     /**
-     * @var array Hash table for exact IP matches (O(1) lookup)
+     * Hash table for exact IP matches (O(1) lookup)
+     *
+     * @var array
      */
     private array $exactIps = [];
 
     /**
-     * @var array List of CIDR blocks (for range matching)
+     * List of CIDR blocks (for range matching)
+     *
+     * @var array
      */
     private array $cidrBlocks = [];
 
@@ -64,6 +68,8 @@ final class IpBlocklistModule implements ModuleInterface
     }
 
     /**
+     * Handle request.
+     *
      * @param Context $context
      *
      * @return Decision|null
