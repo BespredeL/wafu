@@ -75,8 +75,9 @@ final class Engine
 
             if ($decision->isBlocked()) {
                 // Execute action if present
-                if ($decision->getAction() !== null) {
-                    $decision->getAction()->execute($context);
+                $action = $decision->getAction();
+                if ($action !== null) {
+                    $action->execute($context);
                 }
 
                 // report-only: does not block, but retains auditing
@@ -96,8 +97,9 @@ final class Engine
             }
 
             // Execute action for non-blocking decisions
-            if ($decision->getAction() !== null) {
-                $decision->getAction()->execute($context);
+            $action = $decision->getAction();
+            if ($action !== null) {
+                $action->execute($context);
             }
         }
 

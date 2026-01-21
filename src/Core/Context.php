@@ -7,47 +7,72 @@ namespace Bespredel\Wafu\Core;
 final class Context
 {
     /**
+     * Client IP address.
+     *
      * @var string
      */
     private string $ip;
+
     /**
+     * HTTP method.
+     *
      * @var string
      */
     private string $method;
+
     /**
+     * Requested URI.
+     *
      * @var string|mixed
      */
     private string $uri;
 
     /**
+     * HTTP headers.
+     *
      * @var array
      */
     private array $headers = [];
+
     /**
+     * Query parameters.
+     *
      * @var array
      */
     private array $query = [];
+
     /**
+     * Request body.
+     *
      * @var array
      */
     private array $body = [];
+
     /**
+     * Cookies.
+     *
      * @var array
      */
     private array $cookies = [];
 
     /**
+     * Attributes.
+     *
      * @var array
      */
     private array $attributes = [];
 
     /**
-     * @var array|null Cached flattened payload
+     * Cached flattened payload
+     *
+     * @var array|null
      */
     private ?array $cachedFlattenedPayload = null;
 
     /**
-     * @var array|null Cached payload
+     * Cached payload
+     *
+     * @var array|null
      */
     private ?array $cachedPayload = null;
 
@@ -198,6 +223,11 @@ final class Context
         $result = [];
 
         $iterator = static function ($data) use (&$result, &$iterator) {
+            if (!is_array($data)) {
+                $result[] = (string)$data;
+                return;
+            }
+
             foreach ($data as $value) {
                 if (is_array($value)) {
                     $iterator($value);
@@ -266,20 +296,35 @@ final class Context
             return $remoteAddr !== '' ? $remoteAddr : '0.0.0.0';
         }
 
+        // Normalize header keys to lowercase for consistent lookup
+        $normalizedHeaders = [];
+        foreach ($headers as $key => $value) {
+            $normalizedHeaders[strtolower($key)] = $value;
+        }
+
         // priority: CF / X-Real-IP / XFF (first)
-        $cf = $headers['cf-connecting-ip'] ?? ($server['HTTP_CF_CONNECTING_IP'] ?? null);
+        $cf = $normalizedHeaders['cf-connecting-ip'] ?? ($server['HTTP_CF_CONNECTING_IP'] ?? null);
         if (is_string($cf) && $cf !== '') {
-            return trim(explode(',', $cf)[0]);
+            $ip = trim(explode(',', $cf)[0]);
+            if (Net::isValidIp($ip)) {
+                return $ip;
+            }
         }
 
-        $xri = $headers['x-real-ip'] ?? ($server['HTTP_X_REAL_IP'] ?? null);
+        $xri = $normalizedHeaders['x-real-ip'] ?? ($server['HTTP_X_REAL_IP'] ?? null);
         if (is_string($xri) && $xri !== '') {
-            return trim(explode(',', $xri)[0]);
+            $ip = trim(explode(',', $xri)[0]);
+            if (Net::isValidIp($ip)) {
+                return $ip;
+            }
         }
 
-        $xff = $headers['x-forwarded-for'] ?? ($server['HTTP_X_FORWARDED_FOR'] ?? null);
+        $xff = $normalizedHeaders['x-forwarded-for'] ?? ($server['HTTP_X_FORWARDED_FOR'] ?? null);
         if (is_string($xff) && $xff !== '') {
-            return trim(explode(',', $xff)[0]);
+            $ip = trim(explode(',', $xff)[0]);
+            if (Net::isValidIp($ip)) {
+                return $ip;
+            }
         }
 
         return $remoteAddr !== '' ? $remoteAddr : '0.0.0.0';
@@ -297,9 +342,20 @@ final class Context
         $headers = [];
 
         foreach ($server as $key => $value) {
-            if (str_starts_with($key, 'HTTP_')) {
-                $name = str_replace('_', '-', substr($key, 5));
-                $headers[strtolower($name)] = (string)$value;
+            if (!str_starts_with($key, 'HTTP_')) {
+                continue;
+            }
+
+            $name = str_replace('_', '-', substr($key, 5));
+            $normalizedKey = strtolower($name);
+
+            // Handle duplicate headers by keeping the last value
+            // Some servers may send multiple values for the same header
+            if (isset($headers[$normalizedKey])) {
+                // If header already exists, append with comma (RFC 7230)
+                $headers[$normalizedKey] .= ', ' . (string)$value;
+            } else {
+                $headers[$normalizedKey] = (string)$value;
             }
         }
 

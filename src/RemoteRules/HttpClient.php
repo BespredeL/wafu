@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bespredel\Wafu\Remote;
+namespace Bespredel\Wafu\RemoteRules;
 
 use Bespredel\Wafu\Core\Net;
 
@@ -59,6 +59,9 @@ final class HttpClient
             CURLOPT_HEADER          => true,
             CURLOPT_PROTOCOLS       => CURLPROTO_HTTP | CURLPROTO_HTTPS, // Only HTTP/HTTPS
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, // Only HTTP/HTTPS for redirects (if enabled)
+            CURLOPT_SSL_VERIFYPEER  => true,
+            CURLOPT_SSL_VERIFYHOST  => 2,
+            CURLOPT_USERAGENT       => 'WAFU-HttpClient/1.0 (+https://github.com/BespredeL/wafu)',
         ]);
 
         $raw = curl_exec($ch);
@@ -91,9 +94,23 @@ final class HttpClient
      */
     private function streamGet(string $url, array $headers): array
     {
+        // Build header lines
         $headerLines = [];
         foreach ($headers as $k => $v) {
             $headerLines[] = $k . ': ' . $v;
+        }
+
+        // Ensure explicit User-Agent if not provided
+        $hasUa = false;
+        foreach ($headers as $k => $v) {
+            if (strtolower($k) === 'user-agent') {
+                $hasUa = true;
+                break;
+            }
+        }
+
+        if (!$hasUa) {
+            $headerLines[] = 'User-Agent: WAFU-HttpClient/1.0 (+https://github.com/BespredeL/wafu)';
         }
 
         $ctx = stream_context_create([
@@ -104,6 +121,11 @@ final class HttpClient
                 'ignore_errors'   => true,
                 'follow_location' => 0,
                 'max_redirects'   => 0,
+            ],
+            'ssl'  => [
+                'verify_peer'       => true,
+                'verify_peer_name'  => true,
+                'allow_self_signed' => false,
             ],
         ]);
 
@@ -141,14 +163,24 @@ final class HttpClient
         $lines = preg_split('/\r\n|\n|\r/', $raw) ?: [];
 
         foreach ($lines as $line) {
-            if (!str_contains($line, ':')) {
+            $line = trim($line);
+            if ($line === '' || !str_contains($line, ':')) {
                 continue;
             }
 
             [$k, $v] = explode(':', $line, 2);
             $k = strtolower(trim($k));
             $v = trim($v);
-            if ($k !== '') {
+
+            if ($k === '') {
+                continue;
+            }
+
+            // Handle duplicate headers according to RFC 7230
+            // Multiple values should be combined with comma
+            if (isset($headers[$k])) {
+                $headers[$k] .= ', ' . $v;
+            } else {
                 $headers[$k] = $v;
             }
         }

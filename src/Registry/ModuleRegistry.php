@@ -6,9 +6,12 @@ namespace Bespredel\Wafu\Registry;
 
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use RuntimeException;
-use ReflectionClass;
 
-final class ModuleRegistry
+/**
+ * Module registry.
+ * Extends AbstractRegistry to follow DRY principle.
+ */
+final class ModuleRegistry extends AbstractRegistry
 {
     /**
      * Modules config.
@@ -37,13 +40,6 @@ final class ModuleRegistry
      * @var array
      */
     private array $instances = [];
-
-    /**
-     * Cache for camelCase to snake_case conversions
-     *
-     * @var array
-     */
-    private static array $snakeCaseCache = [];
 
     /**
      * @param array                $modulesConfig
@@ -80,19 +76,19 @@ final class ModuleRegistry
             throw new RuntimeException("Module '{$name}' is not defined in config");
         }
 
-        $cfg = $this->modulesConfig[$name];
+        $config = $this->modulesConfig[$name];
 
-        if (empty($cfg['class']) || !is_string($cfg['class'])) {
+        if (empty($config['class']) || !is_string($config['class'])) {
             throw new RuntimeException("Module '{$name}' must define valid 'class'");
         }
 
-        $class = $cfg['class'];
+        $class = $config['class'];
 
         if (!class_exists($class)) {
             throw new RuntimeException("Module class '{$class}' for '{$name}' does not exist");
         }
 
-        $instance = $this->instantiate($class, $cfg);
+        $instance = $this->instantiate($class, $config);
 
         if (!$instance instanceof ModuleInterface) {
             throw new RuntimeException("Module '{$name}' class '{$class}' must implement ModuleInterface");
@@ -130,42 +126,8 @@ final class ModuleRegistry
         // 2) patterns
         $config = $this->hydratePatterns($config);
 
-        $ref = new ReflectionClass($class);
-        $ctor = $ref->getConstructor();
-
-        if ($ctor === null) {
-            return $ref->newInstance();
-        }
-
-        $params = $ctor->getParameters();
-        $args = [];
-
-        foreach ($params as $param) {
-            $name = $param->getName();
-
-            if (array_key_exists($name, $config)) {
-                $args[] = $config[$name];
-                continue;
-            }
-
-            // Use cached snake_case conversion
-            $snake = self::toSnakeCase($name);
-            if (array_key_exists($snake, $config)) {
-                $args[] = $config[$snake];
-                continue;
-            }
-
-            if ($param->isDefaultValueAvailable()) {
-                $args[] = $param->getDefaultValue();
-                continue;
-            }
-
-            throw new RuntimeException(
-                "Cannot instantiate '{$class}': missing config value for constructor param '{$name}'"
-            );
-        }
-
-        return $ref->newInstanceArgs($args);
+        // 3) use parent instantiation logic
+        return parent::instantiate($class, $config);
     }
 
     /**
@@ -256,22 +218,4 @@ final class ModuleRegistry
         return $config;
     }
 
-    /**
-     * Convert camelCase to snake_case with caching.
-     *
-     * @param string $name
-     *
-     * @return string
-     */
-    private static function toSnakeCase(string $name): string
-    {
-        if (isset(self::$snakeCaseCache[$name])) {
-            return self::$snakeCaseCache[$name];
-        }
-
-        $snake = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
-        self::$snakeCaseCache[$name] = $snake;
-
-        return $snake;
-    }
 }

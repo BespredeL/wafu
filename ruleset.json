@@ -91,6 +91,12 @@
                 "/\\bperl\\s*-e\\b/i",
                 "/\\bphp\\s*-r\\b/i",
                 "/\\/bin\\/(?:ba)?sh\\b.*\\s-c\\b/i"
+            ],
+            "uri_deny": [
+                "/\\.env(\\.|$)/i",
+                "/^\/\\.git/",
+                "/^\/vendor\b/",
+                "/\\.(sql|bak|old|backup|swp)$/i"
             ]
         },
         "modules": {

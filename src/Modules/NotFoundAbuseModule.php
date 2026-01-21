@@ -12,39 +12,12 @@ use Bespredel\Wafu\Traits\ModuleHelperTrait;
 use Bespredel\Wafu\Storage\FileStorage;
 
 /**
- * Rate limiting module.
+ * 404 abuse detection module.
  * Uses FileStorage to follow SRP - separates storage concerns from business logic.
  */
-final class RateLimitModule implements ModuleInterface
+final class NotFoundAbuseModule implements ModuleInterface
 {
     use ModuleHelperTrait;
-
-    /**
-     * @param int                  $limit
-     * @param int                  $interval
-     * @param ActionInterface|null $onExceed
-     * @param string               $keyBy
-     * @param string               $reason
-     * @param string|null          $storageDir
-     * @param int                  $gcProbability
-     * @param int                  $ttlMultiplier
-     */
-    public function __construct(
-        private readonly int              $limit = 100,
-        private readonly int              $interval = 60,
-        private readonly ?ActionInterface $onExceed = null,
-        private readonly string           $keyBy = 'ip', // ip|ip+uri
-        private readonly string           $reason = 'Rate limit exceeded',
-        ?string                            $storageDir = null,
-        private readonly int              $gcProbability = 100,  // 1/N queries will launch GC (100 => 1%)
-        private readonly int              $ttlMultiplier = 5     // ttl = interval * ttlMultiplier
-    )
-    {
-        $storageDir = $storageDir
-            ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-rl';
-
-        $this->storage = new FileStorage($storageDir, $this->gcProbability, $this->ttlMultiplier);
-    }
 
     /**
      * File storage instance.
@@ -54,7 +27,32 @@ final class RateLimitModule implements ModuleInterface
     private FileStorage $storage;
 
     /**
-     * Handle request.
+     * @param int                  $threshold     max allowed 404 within interval
+     * @param int                  $interval      seconds window
+     * @param ActionInterface|null $onExceed      action to perform when exceeded
+     * @param string               $keyBy         ip|ip+uri
+     * @param string               $reason        reason
+     * @param string|null          $storageDir    optional storage directory
+     * @param int                  $gcProbability 1/N requests triggers GC (e.g. 100 => 1%)
+     * @param int                  $ttlMultiplier ttl = interval * ttlMultiplier
+     */
+    public function __construct(
+        private readonly int              $threshold = 10,
+        private readonly int              $interval = 60,
+        private readonly ?ActionInterface $onExceed = null,
+        private readonly string           $keyBy = 'ip',
+        private readonly string           $reason = 'Excessive 404 detected',
+        ?string                           $storageDir = null,
+        private readonly int              $gcProbability = 100,
+        private readonly int              $ttlMultiplier = 5
+    )
+    {
+        $storageDir = $storageDir ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-404';
+        $this->storage = new FileStorage($storageDir, $this->gcProbability, $this->ttlMultiplier);
+    }
+
+    /**
+     * Handle the request.
      *
      * @param Context $context
      *
@@ -62,7 +60,13 @@ final class RateLimitModule implements ModuleInterface
      */
     public function handle(Context $context): ?Decision
     {
-        if ($this->onExceed === null || $this->limit <= 0 || $this->interval <= 0) {
+        if ($this->onExceed === null || $this->threshold <= 0 || $this->interval <= 0) {
+            return null;
+        }
+
+        // Respond ONLY to 404
+        $statusCode = $context->getAttribute('http_status_code', 200);
+        if ($statusCode !== 404) {
             return null;
         }
 
@@ -83,26 +87,29 @@ final class RateLimitModule implements ModuleInterface
             }
         }
 
+        // Add current 404
         $timestamps[] = $now;
 
-        $cap = max($this->limit + 20, 50);
+        // File Growth Protection
+        $cap = max($this->threshold + 20, 50);
         if (count($timestamps) > $cap) {
             $timestamps = array_slice($timestamps, -$cap);
         }
 
-        $exceeded = count($timestamps) > $this->limit;
+        $count = count($timestamps);
 
         $this->storage->write($key, [
             't'  => $timestamps,
             'ls' => $now,
         ]);
 
-        if ($exceeded) {
+        if ($count > $this->threshold) {
             $matchData = [
-                'module'   => self::class,
-                'key'      => $this->keyBy,
-                'limit'    => $this->limit,
-                'interval' => $this->interval,
+                'module'    => self::class,
+                'key'       => $this->keyBy,
+                'threshold' => $this->threshold,
+                'interval'  => $this->interval,
+                'count'     => $count,
             ];
 
             $context->setAttribute('wafu.match', $matchData);
@@ -119,7 +126,7 @@ final class RateLimitModule implements ModuleInterface
     }
 
     /**
-     * Build key based on context.
+     * Build the key based on the configuration.
      *
      * @param Context $context
      *

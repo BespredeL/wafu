@@ -44,18 +44,36 @@ final class PatternRegistry
             }
 
             $validated = [];
+            $skipped = 0;
+
             foreach ($set as $i => $pattern) {
                 if (!is_string($pattern) || $pattern === '') {
                     throw new RuntimeException("Pattern '{$name}' at index {$i} must be a non-empty string");
                 }
 
                 // Validate regex pattern
-                if (@preg_match($pattern, '') === false) {
+                $error = null;
+                set_error_handler(static function ($errno, $errstr) use (&$error) {
+                    if ($errno === E_WARNING || $errno === E_NOTICE) {
+                        $error = $errstr;
+                    }
+                });
+
+                $isValid = @preg_match($pattern, '') !== false;
+                restore_error_handler();
+
+                if (!$isValid) {
                     // Skip invalid patterns but don't fail - allow graceful degradation
+                    $skipped++;
                     continue;
                 }
 
                 $validated[] = $pattern;
+            }
+
+            // Warn if all patterns were skipped
+            if ($skipped > 0 && count($validated) === 0 && count($set) > 0) {
+                error_log("WAFU: Pattern set '{$name}' has no valid patterns ({$skipped} skipped)");
             }
 
             $this->validatedPatterns[$name] = $validated;

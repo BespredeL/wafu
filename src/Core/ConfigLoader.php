@@ -97,9 +97,7 @@ final class ConfigLoader
 
         foreach ($config['pipeline'] as $moduleName) {
             if (!isset($config['modules'][$moduleName])) {
-                throw new RuntimeException(
-                    "Module '{$moduleName}' declared in pipeline but not defined in modules"
-                );
+                throw new RuntimeException("Module '{$moduleName}' declared in pipeline but not defined in modules");
             }
         }
 
@@ -109,9 +107,7 @@ final class ConfigLoader
             }
 
             if (!class_exists($module['class'])) {
-                throw new RuntimeException(
-                    "Module class '{$module['class']}' for '{$name}' does not exist"
-                );
+                throw new RuntimeException("Module class '{$module['class']}' for '{$name}' does not exist");
             }
         }
 
@@ -121,9 +117,7 @@ final class ConfigLoader
             }
 
             if (!class_exists($action['class'])) {
-                throw new RuntimeException(
-                    "Action class '{$action['class']}' for '{$name}' does not exist"
-                );
+                throw new RuntimeException("Action class '{$action['class']}' for '{$name}' does not exist");
             }
         }
     }

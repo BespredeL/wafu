@@ -21,9 +21,9 @@ final class WafuServiceProvider extends ServiceProvider
 
         // Kernel as singleton to reuse registries/pipeline
         $this->app->singleton(Kernel::class, function ($app) {
-            /** @var array $cfg */
-            $cfg = $app['config']->get('wafu', []);
-            return new Kernel($cfg);
+            /** @var array $config */
+            $config = $app['config']->get('wafu', []);
+            return new Kernel($config);
         });
     }
 

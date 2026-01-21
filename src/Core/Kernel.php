@@ -7,9 +7,9 @@ namespace Bespredel\Wafu\Core;
 use Bespredel\Wafu\Registry\ActionRegistry;
 use Bespredel\Wafu\Registry\ModuleRegistry;
 use Bespredel\Wafu\Registry\PatternRegistry;
-use Bespredel\Wafu\Remote\FileCache;
-use Bespredel\Wafu\Remote\HttpClient;
-use Bespredel\Wafu\Remote\RulesManager;
+use Bespredel\Wafu\RemoteRules\FileCache;
+use Bespredel\Wafu\RemoteRules\HttpClient;
+use Bespredel\Wafu\RemoteRules\RulesManager;
 
 final class Kernel
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bespredel\Wafu\Remote;
+namespace Bespredel\Wafu\RemoteRules;
 
 use RuntimeException;
 
@@ -51,8 +51,8 @@ final class RulesManager
         }
 
         if (is_array($cached) && $this->cache->isFresh($now, $fetchedAt, $ttl)) {
-            $cfg = $cached['ruleset']['config'] ?? null;
-            return is_array($cfg) ? $cfg : null;
+            $config = $cached['ruleset']['config'] ?? null;
+            return is_array($config) ? $config : null;
         }
 
         // 2) server request (ETag)
@@ -66,15 +66,15 @@ final class RulesManager
 
         // 304 => using cache
         if ($status === 304 && is_array($cached)) {
-            $cfg = $cached['ruleset']['config'] ?? null;
-            return is_array($cfg) ? $cfg : null;
+            $config = $cached['ruleset']['config'] ?? null;
+            return is_array($config) ? $config : null;
         }
 
         // failure => fallback
         if ($status < 200 || $status >= 300) {
             if (($this->settings['use_cache_on_error'] ?? true) && is_array($cached)) {
-                $cfg = $cached['ruleset']['config'] ?? null;
-                return is_array($cfg) ? $cfg : null;
+                $config = $cached['ruleset']['config'] ?? null;
+                return is_array($config) ? $config : null;
             }
 
             return null;
@@ -84,8 +84,8 @@ final class RulesManager
         $ruleset = json_decode($body, true);
         if (!is_array($ruleset)) {
             if (($this->settings['use_cache_on_error'] ?? true) && is_array($cached)) {
-                $cfg = $cached['ruleset']['config'] ?? null;
-                return is_array($cfg) ? $cfg : null;
+                $config = $cached['ruleset']['config'] ?? null;
+                return is_array($config) ? $config : null;
             }
 
             return null;
@@ -117,9 +117,9 @@ final class RulesManager
             'ruleset'     => $ruleset,
         ]);
 
-        $cfg = $ruleset['config'] ?? null;
+        $config = $ruleset['config'] ?? null;
 
-        return is_array($cfg) ? $cfg : null;
+        return is_array($config) ? $config : null;
     }
 
     /**

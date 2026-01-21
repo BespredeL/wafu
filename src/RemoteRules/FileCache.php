@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bespredel\Wafu\Remote;
+namespace Bespredel\Wafu\RemoteRules;
 
 final class FileCache
 {
@@ -65,6 +65,8 @@ final class FileCache
      * @param array $payload
      *
      * @return void
+     *
+     * @throws \RuntimeException
      */
     public function write(array $payload): void
     {
@@ -80,11 +82,19 @@ final class FileCache
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if ($json === false) {
-            return;
+            throw new \RuntimeException('Failed to encode cache payload to JSON');
         }
 
-        @file_put_contents($tmp, $json, LOCK_EX);
-        @rename($tmp, $path);
+        $written = @file_put_contents($tmp, $json, LOCK_EX);
+        if ($written === false || $written !== strlen($json)) {
+            @unlink($tmp);
+            throw new \RuntimeException('Failed to write cache file');
+        }
+
+        if (!@rename($tmp, $path)) {
+            @unlink($tmp);
+            throw new \RuntimeException('Failed to rename cache file');
+        }
     }
 
     /**

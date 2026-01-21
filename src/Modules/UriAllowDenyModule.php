@@ -8,9 +8,11 @@ use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Decision;
+use Bespredel\Wafu\Traits\ModuleHelperTrait;
 
 final class UriAllowDenyModule implements ModuleInterface
 {
+    use ModuleHelperTrait;
     /**
      * Compiled regex patterns.
      *
@@ -122,29 +124,4 @@ final class UriAllowDenyModule implements ModuleInterface
         return Decision::block($this->onDeny, $this->reason);
     }
 
-    /**
-     * Validate and filter regex patterns.
-     *
-     * @param array $patterns
-     *
-     * @return array
-     */
-    private function validatePatterns(array $patterns): array
-    {
-        $validated = [];
-        foreach ($patterns as $pattern) {
-            if (!is_string($pattern) || $pattern === '') {
-                continue;
-            }
-
-            // Validate regex pattern
-            if (@preg_match($pattern, '') === false) {
-                continue;
-            }
-
-            $validated[] = $pattern;
-        }
-
-        return $validated;
-    }
 }

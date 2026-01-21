@@ -17,9 +17,9 @@ final class MethodAllowlistModule implements ModuleInterface
      * @param string               $reason reason
      */
     public function __construct(
-        private array            $allow = ['GET', 'POST', 'HEAD'],
-        private ?ActionInterface $onDeny = null,
-        private string           $reason = 'HTTP method not allowed'
+        private readonly array            $allow = ['GET', 'POST', 'HEAD'],
+        private readonly ?ActionInterface $onDeny = null,
+        private readonly string           $reason = 'HTTP method not allowed'
     )
     {
     }

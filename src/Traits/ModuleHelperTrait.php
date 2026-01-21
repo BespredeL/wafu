@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bespredel\Wafu\Helpers;
+namespace Bespredel\Wafu\Traits;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Core\Context;

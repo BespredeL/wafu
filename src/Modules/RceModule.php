@@ -5,22 +5,13 @@ declare(strict_types=1);
 namespace Bespredel\Wafu\Modules;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
-use Bespredel\Wafu\Contracts\ModuleInterface;
-use Bespredel\Wafu\Core\Context;
-use Bespredel\Wafu\Core\Decision;
-use Bespredel\Wafu\Helpers\ModuleHelperTrait;
 
-final class RceModule implements ModuleInterface
+/**
+ * Remote Code Execution (RCE) detection module.
+ * Extends AbstractPatternModule to follow DRY principle.
+ */
+final class RceModule extends AbstractPatternModule
 {
-    use ModuleHelperTrait;
-
-    /**
-     * Compiled patterns.
-     *
-     * @var array
-     */
-    private array $compiledPatterns = [];
-
     /**
      * @param array                $targets
      * @param array                $patterns
@@ -28,66 +19,21 @@ final class RceModule implements ModuleInterface
      * @param string               $reason
      */
     public function __construct(
-        private array            $targets = ['query', 'body', 'cookies', 'headers', 'uri'],
-        array                    $patterns = [],
-        private ?ActionInterface $onMatch = null,
-        private string           $reason = 'RCE attempt detected'
+        array            $targets = ['query', 'body', 'cookies', 'headers', 'uri'],
+        array            $patterns = [],
+        ?ActionInterface $onMatch = null,
+        string           $reason = 'RCE attempt detected'
     )
     {
-        $patterns = $patterns !== [] ? $patterns : self::defaultPatterns();
-        $this->compiledPatterns = $this->validatePatterns($patterns);
+        parent::__construct($targets, $patterns, $onMatch, $reason);
     }
 
     /**
-     * Handle request.
-     *
-     * @param Context $context
-     *
-     * @return Decision|null
-     */
-    public function handle(Context $context): ?Decision
-    {
-        if ($this->onMatch === null || $this->compiledPatterns === []) {
-            return null;
-        }
-
-        $values = $this->collectTargets($context, $this->targets);
-        if ($values === []) {
-            return null;
-        }
-
-        foreach ($this->compiledPatterns as $pattern) {
-            foreach ($values as $value) {
-                $value = (string)$value;
-                if ($value === '') {
-                    continue;
-                }
-
-                if (preg_match($pattern, $value) === 1) {
-                    $matchData = [
-                        'module'  => self::class,
-                        'pattern' => $pattern,
-                        'value'   => $this->truncate($value, 512),
-                        'targets' => $this->targets,
-                    ];
-                    $context->setAttribute('wafu.match', $matchData);
-
-                    return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Basic RCE signatures:
-     * - command injection separators ; | && || ` $()
-     * - dangerous utilities (bash/sh/cmd/powershell, curl/wget, nc, python -c, perl -e, php -r)
+     * Get default RCE patterns.
      *
      * @return array
      */
-    private static function defaultPatterns(): array
+    protected function getDefaultPatterns(): array
     {
         return [
             // dividers/bypasses
@@ -107,5 +53,4 @@ final class RceModule implements ModuleInterface
             '/\/bin\/(?:ba)?sh\b.*\s-c\b/i',
         ];
     }
-
 }

@@ -9,6 +9,7 @@ use Bespredel\Wafu\Modules\HeaderModule;
 use Bespredel\Wafu\Modules\IpBlocklistModule;
 use Bespredel\Wafu\Modules\LfiModule;
 use Bespredel\Wafu\Modules\MethodAllowlistModule;
+use Bespredel\Wafu\Modules\NotFoundAbuseModule;
 use Bespredel\Wafu\Modules\PathTraversalModule;
 use Bespredel\Wafu\Modules\RateLimitModule;
 use Bespredel\Wafu\Modules\RceModule;
@@ -70,6 +71,7 @@ return [
 
         //
         'bad_bots',
+        'not_found_abuse',
         'rate_limit',
 
         //
@@ -86,7 +88,6 @@ return [
      |  - false (Laravel/Symfony): the action does NOT exit, and the adapter will return a Response
      */
     'actions'                 => [
-
         'block' => [
             'class'     => BlockAction::class,
             'status'    => 403,
@@ -116,7 +117,6 @@ return [
      | Pattern sets are reused in modules via patterns => ['set_name', ...]
      */
     'patterns'                => [
-
         /*
          * SQLi
          */
@@ -218,6 +218,16 @@ return [
             // /bin/sh -c
             '/\/bin\/(?:ba)?sh\b.*\s-c\b/i',
         ],
+
+        /*
+         * URI deny rules.
+         */
+        'uri_deny'       => [
+            '/\.env(\.|$)/i',
+            '/^\/\.git/',
+            '/^\/vendor\b/',
+            '/\.(sql|bak|old|backup|swp)$/i',
+        ],
     ],
 
     /* ---------------------------------------------------------------------
@@ -231,7 +241,6 @@ return [
      | The modular registry will expand everything into a final regex list.
      */
     'modules'                 => [
-
         /*
          * IP/CIDR blocklist (IPv4/IPv6).
          */
@@ -355,6 +364,20 @@ return [
         ],
 
         /*
+         * 404 abuse detection.
+         */
+        'not_found_abuse'  => [
+            'class'          => NotFoundAbuseModule::class,
+            'threshold'      => 20,
+            'interval'       => 300,
+            'key_by'         => 'ip',     // you can 'ip+uri' if you want to count separately for each URI
+            'on_exceed'      => 'block',
+            'reason'         => 'Too many 404 errors',
+            'gc_probability' => 100,
+            'ttl_multiplier' => 5,
+        ],
+
+        /*
          * SQL injection (regex patterns via set name).
          */
         'sql_injection'    => [
@@ -392,8 +415,8 @@ return [
     | - downloads ruleset if needed (TTL/ETag)
     | - uses cache on error (if use_cache_on_error=true)
     | - merge_strategy:
-    | remote_wins: remote over local
-    | local_wins: local over remote
+    |       remote_wins: remote over local
+    |       local_wins: local over remote
     |
     | IMPORTANT: The remote_rules section is always taken from the local config (for client control).
     */
@@ -404,7 +427,7 @@ return [
 
         // URL to ruleset (JSON)
         // An example of using your endpoint: 'https://waf.example.com/api/v1/rulesets/current',
-        'endpoint'           => 'https://github.com/BespredeL/wafu/blob/master/ruleset.json',
+        'endpoint'           => 'https://raw.githubusercontent.com/BespredeL/wafu/refs/heads/master/ruleset.json',
 
         // Authorization Headers (added to the request)
         'headers'            => [

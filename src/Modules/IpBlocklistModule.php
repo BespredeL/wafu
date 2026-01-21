@@ -9,7 +9,7 @@ use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Core\Net;
-use Bespredel\Wafu\Helpers\ModuleHelperTrait;
+use Bespredel\Wafu\Traits\ModuleHelperTrait;
 
 final class IpBlocklistModule implements ModuleInterface
 {
@@ -35,9 +35,9 @@ final class IpBlocklistModule implements ModuleInterface
      * @param string               $reason
      */
     public function __construct(
-        array                    $blocklist = [],
-        private ?ActionInterface $onMatch = null,
-        private string           $reason = 'IP blocked'
+        array                             $blocklist = [],
+        private readonly ?ActionInterface $onMatch = null,
+        private readonly string           $reason = 'IP blocked'
     )
     {
         $this->optimizeBlocklist($blocklist);
