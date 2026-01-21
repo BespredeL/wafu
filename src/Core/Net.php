@@ -155,15 +155,41 @@ final class Net
 
         $hostname = strtolower(trim($hostname));
 
-        // Check for localhost variants
-        $localhostPatterns = ['localhost', '127.0.0.1', '::1', '0.0.0.0', 'localhost.localdomain'];
+        $localhostPatterns = [
+            'localhost',
+            '127.0.0.1',
+            '::1',
+            '0.0.0.0',
+            'localhost.localdomain',
+        ];
         if (in_array($hostname, $localhostPatterns, true)) {
+            return true;
+        }
+
+        $privatePatterns = [
+            '.local',
+            '.internal',
+            '.lan',
+            '.corp',
+            '.localdomain',
+        ];
+        foreach ($privatePatterns as $pattern) {
+            if (str_ends_with($hostname, $pattern)) {
+                return true;
+            }
+        }
+
+        if (str_starts_with($hostname, 'fe80:') || str_starts_with($hostname, '169.254.')) {
             return true;
         }
 
         // Check if hostname is an IP address
         if (filter_var($hostname, FILTER_VALIDATE_IP) !== false) {
             return self::isInternalIp($hostname);
+        }
+
+        if (strlen($hostname) > 253) {
+            return true; // Invalid hostname, treat as internal for safety
         }
 
         // Resolve hostname to IP

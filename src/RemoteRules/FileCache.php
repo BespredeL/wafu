@@ -24,7 +24,25 @@ final class FileCache
      */
     public function path(): string
     {
-        return rtrim($this->dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->fileName;
+        $dir = rtrim($this->dir, DIRECTORY_SEPARATOR);
+        $fileName = basename($this->fileName); // Remove any directory components
+
+        if (preg_match('/[\/\\\\]/', $fileName) !== 0) {
+            throw new \RuntimeException('Invalid cache filename: path traversal detected');
+        }
+
+        $realDir = realpath($dir);
+        if ($realDir === false) {
+            throw new \RuntimeException("Cache directory does not exist: {$dir}");
+        }
+
+        $path = $dir . DIRECTORY_SEPARATOR . $fileName;
+        $realPath = realpath(dirname($path));
+        if ($realPath === false || $realPath !== $realDir) {
+            throw new \RuntimeException('Cache file path validation failed: path traversal detected');
+        }
+
+        return $path;
     }
 
     /**
@@ -70,13 +88,28 @@ final class FileCache
      */
     public function write(array $payload): void
     {
-        if (!is_dir($this->dir)) {
-            if (!mkdir($concurrentDirectory = $this->dir, 0775, true) && !is_dir($concurrentDirectory)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
+        $realDir = realpath($this->dir);
+        if ($realDir === false) {
+            if (!is_dir($this->dir)) {
+                if (!mkdir($concurrentDirectory = $this->dir, 0750, true) && !is_dir($concurrentDirectory)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
+                }
+
+                $realDir = realpath($this->dir);
+                if ($realDir === false) {
+                    throw new \RuntimeException('Failed to resolve cache directory path');
+                }
+            } else {
+                throw new \RuntimeException('Cache directory exists but cannot be resolved');
             }
         }
 
         $path = $this->path();
+
+        $realPath = realpath(dirname($path));
+        if ($realPath === false || $realPath !== $realDir) {
+            throw new \RuntimeException('Cache file path validation failed: path traversal detected');
+        }
 
         $tmp = $path . '.tmp';
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -91,10 +124,14 @@ final class FileCache
             throw new \RuntimeException('Failed to write cache file');
         }
 
+        @chmod($tmp, 0640);
+
         if (!@rename($tmp, $path)) {
             @unlink($tmp);
             throw new \RuntimeException('Failed to rename cache file');
         }
+
+        @chmod($path, 0640);
     }
 
     /**

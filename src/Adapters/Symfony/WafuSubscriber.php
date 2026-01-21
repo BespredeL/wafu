@@ -18,8 +18,8 @@ final class WafuSubscriber implements EventSubscriberInterface
      * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly Kernel          $wafKernel,
-        private readonly LoggerInterface $logger
+        private Kernel          $wafKernel,
+        private LoggerInterface $logger
     )
     {
     }

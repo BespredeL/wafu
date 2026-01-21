@@ -221,16 +221,30 @@ final class Context
         }
 
         $result = [];
+        $maxDepth = 50;
+        $maxItems = 10000;
 
-        $iterator = static function ($data) use (&$result, &$iterator) {
+        $iterator = static function ($data, $depth = 0) use (&$result, &$iterator, $maxDepth, $maxItems) {
+            if ($depth > $maxDepth) {
+                return;
+            }
+
+            if (count($result) >= $maxItems) {
+                return;
+            }
+
             if (!is_array($data)) {
                 $result[] = (string)$data;
                 return;
             }
 
             foreach ($data as $value) {
+                if (count($result) >= $maxItems) {
+                    break;
+                }
+
                 if (is_array($value)) {
-                    $iterator($value);
+                    $iterator($value, $depth + 1);
                 } else {
                     $result[] = (string)$value;
                 }
@@ -302,7 +316,7 @@ final class Context
             $normalizedHeaders[strtolower($key)] = $value;
         }
 
-        // priority: CF / X-Real-IP / XFF (first)
+        // Priority: CF / X-Real-IP / XFF (first)
         $cf = $normalizedHeaders['cf-connecting-ip'] ?? ($server['HTTP_CF_CONNECTING_IP'] ?? null);
         if (is_string($cf) && $cf !== '') {
             $ip = trim(explode(',', $cf)[0]);

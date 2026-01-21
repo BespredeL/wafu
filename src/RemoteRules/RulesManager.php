@@ -81,7 +81,17 @@ final class RulesManager
         }
 
         $body = (string)($resp['body'] ?? '');
-        $ruleset = json_decode($body, true);
+
+        $maxJsonSize = (int)($this->settings['max_json_size'] ?? 10485760); // 10MB default
+        if (strlen($body) > $maxJsonSize) {
+            if (($this->settings['use_cache_on_error'] ?? true) && is_array($cached)) {
+                $config = $cached['ruleset']['config'] ?? null;
+                return is_array($config) ? $config : null;
+            }
+            return null;
+        }
+
+        $ruleset = json_decode($body, true, 32); // Max depth 32
         if (!is_array($ruleset)) {
             if (($this->settings['use_cache_on_error'] ?? true) && is_array($cached)) {
                 $config = $cached['ruleset']['config'] ?? null;

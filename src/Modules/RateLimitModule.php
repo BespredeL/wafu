@@ -30,18 +30,17 @@ final class RateLimitModule implements ModuleInterface
      * @param int                  $ttlMultiplier
      */
     public function __construct(
-        private readonly int              $limit = 100,
-        private readonly int              $interval = 60,
-        private readonly ?ActionInterface $onExceed = null,
-        private readonly string           $keyBy = 'ip', // ip|ip+uri
-        private readonly string           $reason = 'Rate limit exceeded',
-        ?string                            $storageDir = null,
-        private readonly int              $gcProbability = 100,  // 1/N queries will launch GC (100 => 1%)
-        private readonly int              $ttlMultiplier = 5     // ttl = interval * ttlMultiplier
+        private int              $limit = 100,
+        private int              $interval = 60,
+        private ?ActionInterface $onExceed = null,
+        private string           $keyBy = 'ip', // ip|ip+uri
+        private string           $reason = 'Rate limit exceeded',
+        ?string                  $storageDir = null,
+        private int              $gcProbability = 100,  // 1/N queries will launch GC (100 => 1%)
+        private int              $ttlMultiplier = 5     // ttl = interval * ttlMultiplier
     )
     {
-        $storageDir = $storageDir
-            ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-rl';
+        $storageDir = $storageDir ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-rl';
 
         $this->storage = new FileStorage($storageDir, $this->gcProbability, $this->ttlMultiplier);
     }

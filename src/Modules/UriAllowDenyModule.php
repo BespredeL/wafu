@@ -13,6 +13,7 @@ use Bespredel\Wafu\Traits\ModuleHelperTrait;
 final class UriAllowDenyModule implements ModuleInterface
 {
     use ModuleHelperTrait;
+
     /**
      * Compiled regex patterns.
      *
@@ -49,6 +50,7 @@ final class UriAllowDenyModule implements ModuleInterface
     )
     {
         $this->validatedAllowRegex = $this->validatePatterns($allowRegex);
+
         $this->validatedDenyRegex = $this->validatePatterns($denyRegex);
     }
 

@@ -32,13 +32,14 @@ abstract class AbstractPatternModule implements ModuleInterface
      * @param string               $reason
      */
     public function __construct(
-        protected readonly array            $targets = ['query', 'body'],
-        array                               $patterns = [],
-        protected readonly ?ActionInterface $onMatch = null,
-        protected readonly string           $reason = 'Attack pattern matched'
+        protected array            $targets = ['query', 'body'],
+        array                      $patterns = [],
+        protected ?ActionInterface $onMatch = null,
+        protected string           $reason = 'Attack pattern matched'
     )
     {
         $patterns = $patterns !== [] ? $patterns : $this->getDefaultPatterns();
+
         $this->compiledPatterns = $this->validatePatterns($patterns);
     }
 
@@ -67,7 +68,25 @@ abstract class AbstractPatternModule implements ModuleInterface
                     continue;
                 }
 
-                if (preg_match($pattern, $value) === 1) {
+                // Very long strings can cause catastrophic backtracking
+                if (strlen($value) > 10000) {
+                    $value = substr($value, 0, 10000);
+                }
+
+                $backtrackLimit = ini_get('pcre.backtrack_limit');
+                $originalLimit = $backtrackLimit;
+                if ($backtrackLimit === false || (is_numeric($backtrackLimit) && (int)$backtrackLimit > 100000)) {
+                    ini_set('pcre.backtrack_limit', '100000');
+                }
+
+                $result = @preg_match($pattern, $value);
+
+                // Restore original backtrack limit if it was changed
+                if ($originalLimit !== false && $originalLimit !== $backtrackLimit) {
+                    ini_set('pcre.backtrack_limit', (string)$originalLimit);
+                }
+
+                if ($result === 1) {
                     $matchData = [
                         'module'  => static::class,
                         'pattern' => $pattern,

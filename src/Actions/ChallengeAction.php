@@ -33,26 +33,37 @@ final class ChallengeAction implements ActionInterface
      */
     public function execute(Context $context): void
     {
+        if ($this->statusCode < 100 || $this->statusCode >= 600) {
+            $this->statusCode = 429;
+        }
+
+        $retryAfter = max(0, min(3600, $this->retryAfter)); // Limit to 0-3600 seconds
+
         $headers = [
             'Content-Type' => 'text/plain; charset=utf-8',
-            'Retry-After'  => (string)$this->retryAfter,
+            'Retry-After'  => (string)$retryAfter,
         ];
+
+        $safeMessage = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $this->message);
+        if ($safeMessage === null) {
+            $safeMessage = 'Too many requests. Please complete the challenge.';
+        }
 
         $context->setAttribute('wafu.response', [
             'status'  => $this->statusCode,
             'headers' => $headers,
-            'body'    => $this->message,
+            'body'    => $safeMessage,
         ]);
 
         if ($this->terminate) {
             if (!headers_sent()) {
                 http_response_code($this->statusCode);
                 header('Content-Type: text/plain; charset=utf-8');
-                header('Retry-After: ' . $this->retryAfter);
+                header('Retry-After: ' . $retryAfter);
             }
 
-            echo $this->message;
-            
+            echo $safeMessage;
+
             exit;
         }
     }

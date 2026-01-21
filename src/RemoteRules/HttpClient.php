@@ -46,6 +46,13 @@ final class HttpClient
 
         $h = [];
         foreach ($headers as $k => $v) {
+            $k = preg_replace('/[\r\n]/', '', (string)$k);
+            $v = preg_replace('/[\r\n]/', '', (string)$v);
+
+            if ($k === '' || $v === '') {
+                continue;
+            }
+
             $h[] = $k . ': ' . $v;
         }
 
@@ -97,6 +104,13 @@ final class HttpClient
         // Build header lines
         $headerLines = [];
         foreach ($headers as $k => $v) {
+            $k = preg_replace('/[\r\n]/', '', (string)$k);
+            $v = preg_replace('/[\r\n]/', '', (string)$v);
+
+            if ($k === '' || $v === '') {
+                continue;
+            }
+
             $headerLines[] = $k . ': ' . $v;
         }
 

@@ -37,17 +37,18 @@ final class NotFoundAbuseModule implements ModuleInterface
      * @param int                  $ttlMultiplier ttl = interval * ttlMultiplier
      */
     public function __construct(
-        private readonly int              $threshold = 10,
-        private readonly int              $interval = 60,
-        private readonly ?ActionInterface $onExceed = null,
-        private readonly string           $keyBy = 'ip',
-        private readonly string           $reason = 'Excessive 404 detected',
-        ?string                           $storageDir = null,
-        private readonly int              $gcProbability = 100,
-        private readonly int              $ttlMultiplier = 5
+        private int              $threshold = 10,
+        private int              $interval = 60,
+        private ?ActionInterface $onExceed = null,
+        private string           $keyBy = 'ip',
+        private string           $reason = 'Excessive 404 detected',
+        ?string                  $storageDir = null,
+        private int              $gcProbability = 100,
+        private int              $ttlMultiplier = 5
     )
     {
         $storageDir = $storageDir ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-404';
+
         $this->storage = new FileStorage($storageDir, $this->gcProbability, $this->ttlMultiplier);
     }
 

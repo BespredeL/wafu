@@ -18,9 +18,9 @@ final class FileStorage
      * @param int    $ttlMultiplier ttl = interval * ttlMultiplier
      */
     public function __construct(
-        private readonly string $storageDir,
-        private readonly int    $gcProbability = 100,
-        private readonly int    $ttlMultiplier = 5
+        private string $storageDir,
+        private int    $gcProbability = 100,
+        private int    $ttlMultiplier = 5
     )
     {
         $this->ensureDirectoryExists();
@@ -148,10 +148,22 @@ final class FileStorage
      */
     private function getFilePath(string $key): string
     {
-        return $this->storageDir
-            . DIRECTORY_SEPARATOR
-            . hash('sha256', $key)
-            . '.json';
+        $hashed = hash('sha256', $key);
+
+        // Additional validation: ensure hash is valid hex string
+        if (!ctype_xdigit($hashed) || strlen($hashed) !== 64) {
+            throw new RuntimeException('Invalid key hash generated');
+        }
+
+        $file = $this->storageDir . DIRECTORY_SEPARATOR . $hashed . '.json';
+
+        $realPath = realpath(dirname($file));
+        $realStorageDir = realpath($this->storageDir);
+        if ($realPath === false || $realStorageDir === false || $realPath !== $realStorageDir) {
+            throw new RuntimeException('File path validation failed: path traversal detected');
+        }
+
+        return $file;
     }
 
     /**
@@ -163,15 +175,30 @@ final class FileStorage
      */
     private function ensureDirectoryExists(): void
     {
-        if (!is_dir($this->storageDir)) {
-            if (!mkdir($this->storageDir, 0775, true) && !is_dir($this->storageDir)) {
-                throw new RuntimeException('Storage directory cannot be created: ' . $this->storageDir);
+        $realPath = realpath($this->storageDir);
+        if ($realPath === false) {
+            if (!is_dir($this->storageDir)) {
+                if (!mkdir($this->storageDir, 0750, true) && !is_dir($this->storageDir)) {
+                    throw new RuntimeException('Storage directory cannot be created: ' . $this->storageDir);
+                }
+                $realPath = realpath($this->storageDir);
+                if ($realPath === false) {
+                    throw new RuntimeException('Storage directory created but cannot be resolved: ' . $this->storageDir);
+                }
+            } else {
+                throw new RuntimeException('Storage directory exists but cannot be resolved: ' . $this->storageDir);
             }
         }
 
-        if (!is_writable($this->storageDir)) {
+        if (!is_dir($realPath)) {
+            throw new RuntimeException('Storage path is not a directory: ' . $this->storageDir);
+        }
+
+        if (!is_writable($realPath)) {
             throw new RuntimeException('Storage directory is not writable: ' . $this->storageDir);
         }
+
+        $this->storageDir = $realPath;
     }
 
     /**

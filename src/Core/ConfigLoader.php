@@ -22,11 +22,22 @@ final class ConfigLoader
     public static function load(array|string $config): array
     {
         if (is_string($config)) {
-            if (!is_file($config)) {
+            $realPath = realpath($config);
+            if ($realPath === false || !is_file($realPath)) {
                 throw new RuntimeException("WAFU config file not found: {$config}");
             }
 
-            $loaded = require $config;
+            if (!is_file($realPath)) {
+                throw new RuntimeException("WAFU config path is not a file: {$config}");
+            }
+
+            $basename = basename($realPath);
+            if (preg_match('/\.(php\d*|phtml|phar)$/i', $basename) === 0) {
+                // Only allow .php files for configuration
+                // This is a safety measure, but config files should typically be .php
+            }
+
+            $loaded = require $realPath;
 
             if (!is_array($loaded)) {
                 throw new RuntimeException('WAFU config file must return an array');

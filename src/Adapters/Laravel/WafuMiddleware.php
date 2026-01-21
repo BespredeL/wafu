@@ -17,8 +17,8 @@ final class WafuMiddleware
      * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly Kernel          $kernel,
-        private readonly LoggerInterface $logger
+        private Kernel          $kernel,
+        private LoggerInterface $logger
     )
     {
     }

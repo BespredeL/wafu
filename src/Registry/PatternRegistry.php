@@ -28,6 +28,7 @@ final class PatternRegistry
     public function __construct(array $patternsConfig)
     {
         $this->patternsConfig = $patternsConfig;
+
         $this->validateAllPatterns();
     }
 

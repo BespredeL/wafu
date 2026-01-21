@@ -29,10 +29,10 @@ final class HeaderModule implements ModuleInterface
      * @param string               $reason
      */
     public function __construct(
-        private readonly array            $headers = ['User-Agent'],
-        array                             $patterns = [],
-        private readonly ?ActionInterface $onMatch = null,
-        private readonly string           $reason = 'Suspicious header detected'
+        private array            $headers = ['User-Agent'],
+        array                    $patterns = [],
+        private ?ActionInterface $onMatch = null,
+        private string           $reason = 'Suspicious header detected'
     )
     {
         $this->compiledPatterns = $this->validatePatterns($patterns);

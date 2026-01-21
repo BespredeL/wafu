@@ -116,7 +116,7 @@ final class ModuleRegistry extends AbstractRegistry
      *
      * @throws \ReflectionException
      */
-    private function instantiate(string $class, array $config): object
+    protected function instantiate(string $class, array $config): object
     {
         unset($config['class']);
 
