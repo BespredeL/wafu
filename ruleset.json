@@ -1,6 +1,6 @@
 {
     "version": "2026.01.03-01",
-    "ttl": 300,
+    "ttl": 10800,
     "config": {
         "enabled": true,
         "mode": "enforce",
@@ -14,6 +14,7 @@
             "lfi",
             "rce",
             "bad_bots",
+            "not_found_abuse",
             "rate_limit",
             "sql_injection",
             "xss"
@@ -193,6 +194,16 @@
                 "key_by": "ip",
                 "on_exceed": "challenge",
                 "reason": "Rate limit exceeded",
+                "gc_probability": 100,
+                "ttl_multiplier": 5
+            },
+            "not_found_abuse": {
+                "class": "Bespredel\\Wafu\\Modules\\NotFoundAbuseModule",
+                "threshold": 20,
+                "interval": 300,
+                "key_by": "ip",
+                "on_exceed": "block",
+                "reason": "Too many 404 errors",
                 "gc_probability": 100,
                 "ttl_multiplier": 5
             },

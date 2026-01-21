@@ -422,7 +422,7 @@ return [
     */
     'remote_rules'            => [
 
-        //
+        // Enable remote source rules download
         'enabled'            => false,
 
         // URL to ruleset (JSON)
