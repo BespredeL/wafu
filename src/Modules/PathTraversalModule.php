@@ -6,10 +6,6 @@ namespace Bespredel\Wafu\Modules;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 
-/**
- * Path traversal detection module.
- * Extends AbstractPatternModule to follow DRY principle.
- */
 final class PathTraversalModule extends AbstractPatternModule
 {
     /**

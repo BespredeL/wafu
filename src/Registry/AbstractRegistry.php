@@ -7,10 +7,6 @@ namespace Bespredel\Wafu\Registry;
 use ReflectionClass;
 use RuntimeException;
 
-/**
- * Abstract base class for registries.
- * Implements common instantiation logic to follow DRY principle.
- */
 abstract class AbstractRegistry
 {
     /**

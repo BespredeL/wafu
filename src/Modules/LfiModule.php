@@ -6,10 +6,6 @@ namespace Bespredel\Wafu\Modules;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 
-/**
- * Local File Inclusion (LFI) detection module.
- * Extends AbstractPatternModule to follow DRY principle.
- */
 final class LfiModule extends AbstractPatternModule
 {
     /**

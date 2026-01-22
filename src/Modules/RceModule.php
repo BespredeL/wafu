@@ -6,10 +6,6 @@ namespace Bespredel\Wafu\Modules;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 
-/**
- * Remote Code Execution (RCE) detection module.
- * Extends AbstractPatternModule to follow DRY principle.
- */
 final class RceModule extends AbstractPatternModule
 {
     /**

@@ -10,10 +10,6 @@ use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
 
-/**
- * Abstract base class for pattern-based modules.
- * Implements common pattern matching logic to follow DRY principle.
- */
 abstract class AbstractPatternModule implements ModuleInterface
 {
     use ModuleHelperTrait;

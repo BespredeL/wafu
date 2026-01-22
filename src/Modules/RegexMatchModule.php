@@ -6,10 +6,6 @@ namespace Bespredel\Wafu\Modules;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 
-/**
- * Generic regex pattern matching module.
- * Extends AbstractPatternModule to follow DRY principle.
- */
 final class RegexMatchModule extends AbstractPatternModule
 {
     /**
