@@ -7,7 +7,8 @@
 
 WAFU is a **config-driven, modular Web Application Firewall** for PHP 8.1+, designed for **Laravel, Symfony and standalone PHP applications**.
 
-It supports **local and remote rulesets**, caching, pattern sets, and production-safe enforcement with a flexible architecture that allows you to customize security rules without modifying code.
+It supports **local and remote rulesets**, caching, pattern sets, and production-safe enforcement with a flexible architecture that allows you to
+customize security rules without modifying code.
 
 ---
 
@@ -16,6 +17,7 @@ It supports **local and remote rulesets**, caching, pattern sets, and production
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Testing](#testing)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Modes](#modes)
@@ -61,6 +63,22 @@ Install via Composer:
 
 ```bash
 composer require bespredel/wafu
+```
+
+---
+
+## Testing
+
+Run tests locally:
+
+```bash
+composer test
+```
+
+Run baseline benchmark:
+
+```bash
+composer bench:baseline
 ```
 
 ---
@@ -130,16 +148,16 @@ Route::middleware([\Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::class])
 
 ```yaml
 services:
-    Bespredel\Wafu\Adapters\Symfony\WafuSubscriber:
-        arguments:
-            $wafKernel: '@Bespredel\Wafu\Core\Kernel'
-            $logger: '@logger'
-        tags:
-            - { name: kernel.event_subscriber }
-    
-    Bespredel\Wafu\Core\Kernel:
-        arguments:
-            $configPath: '%kernel.project_dir%/config/wafu.php'
+  Bespredel\Wafu\Adapters\Symfony\WafuSubscriber:
+    arguments:
+      $wafKernel: '@Bespredel\Wafu\Core\Kernel'
+      $logger: '@logger'
+    tags:
+      - { name: kernel.event_subscriber }
+
+  Bespredel\Wafu\Core\Kernel:
+    arguments:
+      $configPath: '%kernel.project_dir%/config/wafu.php'
 ```
 
 2. **Create config file** at `config/wafu.php` (copy from `vendor/bespredel/wafu/src/config/wafu.php`)
@@ -187,17 +205,24 @@ Define the order in which modules are executed:
 
 ```php
 'pipeline' => [
-    'ip_blocklist',      // Fast checks first
+    // Fast checks first
+    'ip_blocklist',
     'method_allowlist',
     'uri_rules',
-    'path_traversal',    // Pattern matching
+    
+    // Pattern matching
+    'path_traversal',
     'lfi',
     'rce',
-    'bad_bots',
-    'not_found_abuse',
-    'rate_limit',        // Resource-intensive checks last
+    
+    // Regex pattern matching
     'sql_injection',
     'xss',
+    
+    // Resource-intensive checks last
+    'bad_bots',
+    'rate_limit',
+    'not_found_abuse',
 ],
 ```
 
@@ -213,7 +238,7 @@ Actions define what happens when a module detects a threat:
         'class'     => \Bespredel\Wafu\Actions\BlockAction::class,
         'status'    => 403,
         'message'   => 'Blocked by WAFU',
-        'terminate' => true, // true for standalone, false for frameworks
+        'terminate' => false, // set true only for standalone scripts that should exit immediately
     ],
     
     'challenge' => [
@@ -221,7 +246,7 @@ Actions define what happens when a module detects a threat:
         'status'      => 429,
         'message'     => 'Too many requests. Please retry later.',
         'retry_after' => 15,
-        'terminate'   => true,
+        'terminate'   => false,
     ],
     
     'log' => [
@@ -247,6 +272,7 @@ Blocks malicious requests immediately. Use in production after testing.
 ### Report Mode
 
 Logs threats without blocking. Perfect for:
+
 - Initial deployment
 - Testing new rules
 - Monitoring false positives
@@ -439,6 +465,7 @@ Or use direct regex patterns:
 ## Remote Rulesets
 
 WAFU can load rulesets from remote endpoints, enabling:
+
 - Centralized rule management
 - Dynamic updates without deployment
 - A/B testing of rules
@@ -489,11 +516,15 @@ Remote rulesets should be JSON files with the same structure as the local PHP co
 ```json
 {
     "patterns": {
-        "sql_keywords": ["/\\bSELECT\\b/i"]
+        "sql_keywords": [
+            "/\\bSELECT\\b/i"
+        ]
     },
     "modules": {
         "sql_injection": {
-            "patterns": ["sql_keywords"],
+            "patterns": [
+                "sql_keywords"
+            ],
             "on_match": "block"
         }
     }
@@ -511,6 +542,7 @@ WAFU integrates seamlessly with Laravel through a service provider and middlewar
 **Service Provider** (auto-registered):
 
 The `WafuServiceProvider` automatically:
+
 - Registers the `Kernel` as a singleton
 - Merges package config with your app config
 - Publishes config file via `php artisan vendor:publish --tag=wafu-config`
@@ -525,6 +557,7 @@ protected $middleware = [
 ```
 
 The middleware automatically:
+
 - Extracts request data
 - Runs WAFU checks
 - Returns appropriate responses
@@ -537,16 +570,16 @@ WAFU integrates via an event subscriber:
 ```yaml
 # config/services.yaml
 services:
-    Bespredel\Wafu\Adapters\Symfony\WafuSubscriber:
-        arguments:
-            $wafKernel: '@Bespredel\Wafu\Core\Kernel'
-            $logger: '@logger'
-        tags:
-            - { name: kernel.event_subscriber }
-    
-    Bespredel\Wafu\Core\Kernel:
-        arguments:
-            $configPath: '%kernel.project_dir%/config/wafu.php'
+  Bespredel\Wafu\Adapters\Symfony\WafuSubscriber:
+    arguments:
+      $wafKernel: '@Bespredel\Wafu\Core\Kernel'
+      $logger: '@logger'
+    tags:
+      - { name: kernel.event_subscriber }
+
+  Bespredel\Wafu\Core\Kernel:
+    arguments:
+      $configPath: '%kernel.project_dir%/config/wafu.php'
 ```
 
 The subscriber listens to `KernelEvents::REQUEST` and processes requests before they reach your controllers.
@@ -565,6 +598,7 @@ The subscriber listens to `KernelEvents::REQUEST` and processes requests before 
 ### Defense in Depth
 
 WAFU is one layer of security. Combine with:
+
 - Input validation
 - Output encoding
 - SQL prepared statements
