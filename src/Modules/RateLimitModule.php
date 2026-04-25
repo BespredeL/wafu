@@ -7,7 +7,9 @@ namespace Bespredel\Wafu\Modules;
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
+use Bespredel\Wafu\Modules\Support\SlidingWindowCounter;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
 use Bespredel\Wafu\Storage\FileStorage;
 
@@ -20,6 +22,22 @@ final class RateLimitModule implements ModuleInterface
     use ModuleHelperTrait;
 
     /**
+     * File storage instance.
+     *
+     * @var FileStorage
+     */
+    private FileStorage $storage;
+
+    /**
+     * Sliding window counter instance.
+     *
+     * @var SlidingWindowCounter
+     */
+    private SlidingWindowCounter $counter;
+
+    /**
+     * Constructor.
+     *
      * @param int                  $limit
      * @param int                  $interval
      * @param ActionInterface|null $onExceed
@@ -43,14 +61,8 @@ final class RateLimitModule implements ModuleInterface
         $storageDir = $storageDir ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-rl';
 
         $this->storage = new FileStorage($storageDir, $this->gcProbability, $this->ttlMultiplier);
+        $this->counter = new SlidingWindowCounter($this->storage);
     }
-
-    /**
-     * File storage instance.
-     *
-     * @var FileStorage
-     */
-    private FileStorage $storage;
 
     /**
      * Handle request.
@@ -68,43 +80,18 @@ final class RateLimitModule implements ModuleInterface
         $this->storage->cleanup($this->interval);
 
         $key = $this->buildKey($context);
-        $now = time();
-        $windowStart = $now - $this->interval;
+        $result = $this->counter->hit($key, $this->limit, $this->interval);
 
-        $data = $this->storage->read($key);
-        $timestamps = [];
-
-        if ($data !== null) {
-            foreach ($data['t'] as $ts) {
-                if ($ts >= $windowStart) {
-                    $timestamps[] = $ts;
-                }
-            }
-        }
-
-        $timestamps[] = $now;
-
-        $cap = max($this->limit + 20, 50);
-        if (count($timestamps) > $cap) {
-            $timestamps = array_slice($timestamps, -$cap);
-        }
-
-        $exceeded = count($timestamps) > $this->limit;
-
-        $this->storage->write($key, [
-            't'  => $timestamps,
-            'ls' => $now,
-        ]);
-
-        if ($exceeded) {
+        if ($result['exceeded']) {
             $matchData = [
                 'module'   => self::class,
                 'key'      => $this->keyBy,
                 'limit'    => $this->limit,
                 'interval' => $this->interval,
+                'count'    => $result['count'],
             ];
 
-            $context->setAttribute('wafu.match', $matchData);
+            $context->setAttribute(ContextKeys::MATCH, $matchData);
 
             return $this->createDecision(
                 $context,

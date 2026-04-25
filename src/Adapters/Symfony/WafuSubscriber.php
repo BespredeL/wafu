@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bespredel\Wafu\Adapters\Symfony;
 
 use Bespredel\Wafu\Core\Kernel;
+use Bespredel\Wafu\Core\ContextKeys;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,6 +15,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final class WafuSubscriber implements EventSubscriberInterface
 {
     /**
+     * Constructor.
+     *
      * @param Kernel          $wafKernel
      * @param LoggerInterface $logger
      */
@@ -69,13 +72,20 @@ final class WafuSubscriber implements EventSubscriberInterface
         $context = $result['context'];
         $decision = $result['decision'];
 
-        $context->setAttribute('psr_logger', $this->logger);
+        $context->setAttribute(ContextKeys::LOGGER, $this->logger);
 
         if ($decision->isBlocked()) {
-            $status = $decision->getStatus() > 0 ? $decision->getStatus() : Response::HTTP_FORBIDDEN;
-            $body = $decision->getBody() ?? ($decision->getReason() ?: 'Blocked by WAFU');
+            $respSpec = $context->getAttribute(ContextKeys::RESPONSE, []);
 
-            $headersOut = $decision->getHeaders();
+            $status = $decision->getStatus() > 0
+                ? $decision->getStatus()
+                : (int)($respSpec['status'] ?? Response::HTTP_FORBIDDEN);
+
+            $body = $decision->getBody()
+                ?? (is_string($respSpec['body'] ?? null) ? $respSpec['body'] : null)
+                ?? ($decision->getReason() ?: 'Blocked by WAFU');
+
+            $headersOut = array_replace((array)($respSpec['headers'] ?? []), $decision->getHeaders());
             if (!isset($headersOut['Content-Type']) && !isset($headersOut['content-type'])) {
                 $headersOut['Content-Type'] = 'text/plain; charset=utf-8';
             }

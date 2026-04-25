@@ -7,6 +7,7 @@ namespace Bespredel\Wafu\Modules;
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Core\Net;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
@@ -30,6 +31,8 @@ final class IpBlocklistModule implements ModuleInterface
     private array $cidrBlocks = [];
 
     /**
+     * Constructor.
+     *
      * @param array                $blocklist
      * @param ActionInterface|null $onMatch
      * @param string               $reason
@@ -92,7 +95,7 @@ final class IpBlocklistModule implements ModuleInterface
                 'ip'     => $ip,
                 'rule'   => 'exact_ip',
             ];
-            $context->setAttribute('wafu.match', $matchData);
+            $context->setAttribute(ContextKeys::MATCH, $matchData);
 
             return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
         }
@@ -106,7 +109,7 @@ final class IpBlocklistModule implements ModuleInterface
                         'ip'     => $ip,
                         'rule'   => $cidr,
                     ];
-                    $context->setAttribute('wafu.match', $matchData);
+                    $context->setAttribute(ContextKeys::MATCH, $matchData);
 
                     return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
                 }

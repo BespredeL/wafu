@@ -7,6 +7,7 @@ namespace Bespredel\Wafu\Modules;
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
 
@@ -69,18 +70,7 @@ abstract class AbstractPatternModule implements ModuleInterface
                     $value = substr($value, 0, 10000);
                 }
 
-                $backtrackLimit = ini_get('pcre.backtrack_limit');
-                $originalLimit = $backtrackLimit;
-                if ($backtrackLimit === false || (is_numeric($backtrackLimit) && (int)$backtrackLimit > 100000)) {
-                    ini_set('pcre.backtrack_limit', '100000');
-                }
-
                 $result = @preg_match($pattern, $value);
-
-                // Restore original backtrack limit if it was changed
-                if ($originalLimit !== false && $originalLimit !== $backtrackLimit) {
-                    ini_set('pcre.backtrack_limit', (string)$originalLimit);
-                }
 
                 if ($result === 1) {
                     $matchData = [
@@ -89,7 +79,7 @@ abstract class AbstractPatternModule implements ModuleInterface
                         'value'   => $this->truncate($value, 512),
                         'targets' => $this->targets,
                     ];
-                    $context->setAttribute('wafu.match', $matchData);
+                    $context->setAttribute(ContextKeys::MATCH, $matchData);
 
                     return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
                 }

@@ -6,6 +6,7 @@ namespace Bespredel\Wafu\Actions;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Psr\Log\LoggerInterface;
 
 final class LogAction implements ActionInterface
@@ -46,10 +47,10 @@ final class LogAction implements ActionInterface
             'headers' => $context->getHeaders(),
             'query'   => $context->getQuery(),
             'body'    => $context->getBody(),
-            'match'   => $context->getAttribute('wafu.match'),
+            'match'   => $context->getAttribute(ContextKeys::MATCH),
         ];
 
-        $logger = $context->getAttribute('psr_logger');
+        $logger = $context->getAttribute(ContextKeys::LOGGER);
         if ($logger instanceof LoggerInterface) {
             $lvl = strtolower($this->level);
             $lvl = in_array($lvl, [

@@ -6,6 +6,7 @@ namespace Bespredel\Wafu\Actions;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 
 final class BlockAction implements ActionInterface
 {
@@ -17,7 +18,7 @@ final class BlockAction implements ActionInterface
     public function __construct(
         private int    $statusCode = 403,
         private string $message = 'Blocked by WAFU',
-        private bool   $terminate = true
+        private bool   $terminate = false
     )
     {
     }
@@ -40,7 +41,7 @@ final class BlockAction implements ActionInterface
             $safeMessage = 'Blocked by WAFU';
         }
 
-        $context->setAttribute('wafu.response', [
+        $context->setAttribute(ContextKeys::RESPONSE, [
             'status'  => $this->statusCode,
             'headers' => ['Content-Type' => 'text/plain; charset=utf-8'],
             'body'    => $safeMessage,

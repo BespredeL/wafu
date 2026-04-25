@@ -59,24 +59,24 @@ return [
      | Recommended: light checks first, regex checks later.
      */
     'pipeline'                => [
-        //
+        // Fast checks first
         'ip_blocklist',
         'method_allowlist',
         'uri_rules',
 
-        //
+        // Pattern matching
         'path_traversal',
         'lfi',
         'rce',
 
-        //
-        'bad_bots',
-        'not_found_abuse',
-        'rate_limit',
-
-        //
+        // Regex pattern matching
         'sql_injection',
         'xss',
+
+        // Resource-intensive checks last
+        'bad_bots',
+        'rate_limit',
+        'not_found_abuse',
     ],
 
     /* ---------------------------------------------------------------------
@@ -88,21 +88,24 @@ return [
      |  - false (Laravel/Symfony): the action does NOT exit, and the adapter will return a Response
      */
     'actions'                 => [
+        // Block action (blocks the request)
         'block' => [
             'class'     => BlockAction::class,
             'status'    => 403,
             'message'   => 'Blocked by WAFU',
-            'terminate' => true,
+            'terminate' => false,
         ],
 
+        // Challenge action (challenges the request)
         'challenge' => [
             'class'       => ChallengeAction::class,
             'status'      => 429,
             'message'     => 'Too many requests. Please retry later.',
             'retry_after' => 15,
-            'terminate'   => true,
+            'terminate'   => false,
         ],
 
+        // Log action (logs the request)
         'log' => [
             'class'   => LogAction::class,
             'channel' => 'security',
@@ -118,7 +121,7 @@ return [
      */
     'patterns'                => [
         /*
-         * SQLi
+         * SQL injection
          */
         'sql_keywords'   => [
             '/\bUNION\b/i',
@@ -135,7 +138,7 @@ return [
         ],
 
         /*
-         * XSS
+         * XSS (Cross-Site Scripting)
          */
         'xss_basic'      => [
             '/<\s*script\b/i',
@@ -146,7 +149,7 @@ return [
         ],
 
         /*
-         * Bots
+         * Bad bots (bad bots and scanners)
          */
         'bad_bots_ua'    => [
             '/\bcurl\b/i',
@@ -160,7 +163,7 @@ return [
         ],
 
         /*
-         * Path traversal
+         * Path traversal (path traversal vulnerabilities)
          */
         'path_traversal' => [
             // ../ or ..\
@@ -177,29 +180,29 @@ return [
         ],
 
         /*
-         * LFI
+         * LFI (Local File Inclusion)
          */
         'lfi_files'      => [
-            //
+            // PHP files
             '/\bphp:\/\/(?:filter|input|stdin|memory|temp|fd)\b/i',
             '/\b(?:expect|data|zip|phar):\/\//i',
 
-            //
+            // Passwords files
             '/\/etc\/passwd\b/i',
             '/\/etc\/shadow\b/i',
             '/\/proc\/self\/environ\b/i',
             '/\/proc\/(?:self|[0-9]+)\/cmdline\b/i',
 
-            //
+            // SSH keys files
             '/\b(?:\.ssh\/authorized_keys|\.ssh\/id_rsa|\.ssh\/id_ed25519)\b/i',
             '/\b(?:wp-config\.php|config\.php|configuration\.php|\.env)\b/i',
 
-            //
+            // Logs files
             '/\b(?:access\.log|error\.log|nginx\.log|apache2\/.*log)\b/i',
         ],
 
         /*
-         * RCE
+         * RCE (Remote Code Execution)
          */
         'rce_signatures' => [
             // Separators/Traversaries
@@ -220,7 +223,7 @@ return [
         ],
 
         /*
-         * URI deny rules.
+         * URI deny rules (deny rules for URIs)
          */
         'uri_deny'       => [
             '/\.env(\.|$)/i',
@@ -271,6 +274,8 @@ return [
          * If allow_* is set, everything that is not matched will be prohibited.
          */
         'uri_rules'        => [
+
+            // Class to use for the module.
             'class'        => UriAllowDenyModule::class,
 
             //Allowlist (optional). If not needed, leave blank.
@@ -279,6 +284,8 @@ return [
                 // '/api',
                 // '/login',
             ],
+
+            // Allow regex (optional). If not needed, leave blank.
             'allow_regex'  => [
                 // '/^\/api\/v\d+\/.*$/',
             ],
@@ -289,12 +296,18 @@ return [
                 '/.git',
                 '/vendor',
             ],
+
+            // Deny regex (optional). If not needed, leave blank.
             'deny_regex'   => [
-                'uri_deny', // link to pattern set
+                'uri_deny', // link to pattern set (see patterns section)
             ],
 
-            'on_deny' => 'block',
-            'reason'  => 'URI is not allowed',
+            // Action to take when the URI is denied.
+            'on_deny' => 'block', // block the request
+
+            // Reason to display when the URI is denied.
+            'reason'  => 'URI is not allowed', // default reason
+            
         ],
 
         /*
@@ -370,7 +383,7 @@ return [
             'class'          => NotFoundAbuseModule::class,
             'threshold'      => 20,
             'interval'       => 300,
-            'key_by'         => 'ip',     // you can 'ip+uri' if you want to count separately for each URI
+            'key_by'         => 'ip', // you can 'ip+uri' if you want to count separately for each URI
             'on_exceed'      => 'block',
             'reason'         => 'Too many 404 errors',
             'gc_probability' => 100,

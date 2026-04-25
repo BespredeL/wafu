@@ -32,7 +32,8 @@
         }
     },
     "scripts": {
-        "test": "phpunit",
+        "test": "phpunit --configuration phpunit.xml",
+        "bench:baseline": "php tests/Benchmark/baseline.php",
         "cs:fix": "php-cs-fixer fix -v",
         "psalm": "psalm"
     },

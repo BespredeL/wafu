@@ -13,6 +13,8 @@ final class WafuServiceProvider extends ServiceProvider
      * Register the service provider.
      *
      * @return void
+     *
+     * @throws \ReflectionException
      */
     public function register(): void
     {

@@ -7,6 +7,7 @@ namespace Bespredel\Wafu\Modules;
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
 
@@ -116,7 +117,7 @@ final class UriAllowDenyModule implements ModuleInterface
      */
     private function deny(Context $context, string $uri, string $type, string $rule): Decision
     {
-        $context->setAttribute('wafu.match', [
+        $context->setAttribute(ContextKeys::MATCH, [
             'module' => self::class,
             'uri'    => $uri,
             'type'   => $type,

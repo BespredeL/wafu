@@ -77,6 +77,8 @@ final class Context
     private ?array $cachedPayload = null;
 
     /**
+     * Constructor.
+     *
      * @param array $server                $_SERVER or adapted array
      * @param array $query                 $_GET
      * @param array $body                  $_POST / parsed body

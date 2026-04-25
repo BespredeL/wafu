@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bespredel\Wafu\Adapters\Laravel;
 
 use Bespredel\Wafu\Core\Kernel;
+use Bespredel\Wafu\Core\ContextKeys;
 use Closure;
 use Illuminate\Http\Request;
 use Psr\Log\LoggerInterface;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class WafuMiddleware
 {
     /**
+     * Constructor.
+     *
      * @param Kernel          $kernel
      * @param LoggerInterface $logger
      */
@@ -52,14 +55,23 @@ final class WafuMiddleware
         $decision = $result['decision'];
 
         // PSR-3 logger is available for action
-        $context->setAttribute('psr_logger', $this->logger);
+        $context->setAttribute(ContextKeys::LOGGER, $this->logger);
 
         if ($decision->isBlocked()) {
-            $status = $decision->getStatus() > 0 ? $decision->getStatus() : 403;
-            $body = $decision->getBody() ?? ($decision->getReason() ?: 'Blocked by WAFU');
+            $respSpec = $context->getAttribute(ContextKeys::RESPONSE, []);
+
+            $status = $decision->getStatus() > 0
+                ? $decision->getStatus()
+                : (int)($respSpec['status'] ?? 403);
+
+            $body = $decision->getBody()
+                ?? (is_string($respSpec['body'] ?? null) ? $respSpec['body'] : null)
+                ?? ($decision->getReason() ?: 'Blocked by WAFU');
+
             $resp = response($body, $status);
 
-            foreach ($decision->getHeaders() as $k => $v) {
+            $headersOut = array_replace((array)($respSpec['headers'] ?? []), $decision->getHeaders());
+            foreach ($headersOut as $k => $v) {
                 $resp->header((string)$k, (string)$v);
             }
 
