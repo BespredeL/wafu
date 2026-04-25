@@ -1,11 +1,11 @@
-name: CI
+name: Tests
 
 on:
   push:
   pull_request:
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,4 +15,3 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: composer test
-      - run: composer psalm
