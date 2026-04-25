@@ -9,8 +9,15 @@ use Bespredel\Wafu\Registry\ModuleRegistry;
 
 final class Engine
 {
+    /**
+     * Mode of operation: enforce (block) or report (audit only).
+     */
     public const MODE_ENFORCE = 'enforce';
-    public const MODE_REPORT  = 'report';
+
+    /**
+     * Mode of operation: report (audit only).
+     */
+    public const MODE_REPORT = 'report';
 
     /**
      * Module registry.
@@ -82,8 +89,8 @@ final class Engine
 
                 // report-only: does not block, but retains auditing
                 if ($this->mode === self::MODE_REPORT) {
-                    $context->setAttribute('wafu.report_only', true);
-                    $context->setAttribute('wafu.report_decision', [
+                    $context->setAttribute(ContextKeys::REPORT_ONLY, true);
+                    $context->setAttribute(ContextKeys::REPORT_DECISION, [
                         'reason'  => $decision->getReason(),
                         'status'  => $decision->getStatus(),
                         'headers' => $decision->getHeaders(),

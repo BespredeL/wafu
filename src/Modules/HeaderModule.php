@@ -7,6 +7,7 @@ namespace Bespredel\Wafu\Modules;
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
 
@@ -23,6 +24,8 @@ final class HeaderModule implements ModuleInterface
 
 
     /**
+     * Constructor.
+     *
      * @param array                $headers
      * @param array                $patterns
      * @param ActionInterface|null $onMatch
@@ -65,7 +68,7 @@ final class HeaderModule implements ModuleInterface
                         'pattern' => $pattern,
                         'value'   => $this->truncate($value, 512),
                     ];
-                    $context->setAttribute('wafu.match', $matchData);
+                    $context->setAttribute(ContextKeys::MATCH, $matchData);
 
                     return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
                 }
@@ -74,5 +77,4 @@ final class HeaderModule implements ModuleInterface
 
         return null;
     }
-
 }

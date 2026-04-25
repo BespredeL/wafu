@@ -6,6 +6,7 @@ namespace Bespredel\Wafu\Traits;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
 
 trait ModuleHelperTrait
@@ -27,7 +28,7 @@ trait ModuleHelperTrait
         array           $matchData = []
     ): Decision
     {
-        $resp = $context->getAttribute('wafu.response');
+        $resp = $context->getAttribute(ContextKeys::RESPONSE);
         if (is_array($resp) && isset($resp['status'])) {
             return Decision::blockWithResponse(
                 $action,
@@ -108,47 +109,43 @@ trait ModuleHelperTrait
             return $context->getFlattenedPayload();
         }
 
-        $valueArrays = [];
-        $singleValues = [];
+        $values = [];
 
         foreach ($targets as $t) {
             switch ($t) {
                 case 'query':
-                    $valueArrays[] = $this->flatten($context->getQuery());
+                    foreach ($this->flatten($context->getQuery()) as $value) {
+                        $values[] = $value;
+                    }
                     break;
                 case 'body':
-                    $valueArrays[] = $this->flatten($context->getBody());
+                    foreach ($this->flatten($context->getBody()) as $value) {
+                        $values[] = $value;
+                    }
                     break;
                 case 'cookies':
-                    $valueArrays[] = $this->flatten($context->getCookies());
+                    foreach ($this->flatten($context->getCookies()) as $value) {
+                        $values[] = $value;
+                    }
                     break;
                 case 'headers':
-                    $valueArrays[] = array_values($context->getHeaders());
+                    foreach (array_values($context->getHeaders()) as $value) {
+                        $values[] = (string)$value;
+                    }
                     break;
                 case 'uri':
-                    $singleValues[] = $context->getUri();
+                    $values[] = $context->getUri();
                     break;
                 case 'method':
-                    $singleValues[] = $context->getMethod();
+                    $values[] = $context->getMethod();
                     break;
                 case 'ip':
-                    $singleValues[] = $context->getIp();
+                    $values[] = $context->getIp();
                     break;
             }
         }
 
-        $values = [];
-        foreach ($valueArrays as $arr) {
-            foreach ($arr as $val) {
-                $values[] = $val;
-            }
-        }
-
-        foreach ($singleValues as $val) {
-            $values[] = (string)$val;
-        }
-
-        return array_values($values);
+        return $values;
     }
 
     /**

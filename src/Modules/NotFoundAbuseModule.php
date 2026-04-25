@@ -7,7 +7,9 @@ namespace Bespredel\Wafu\Modules;
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Contracts\ModuleInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 use Bespredel\Wafu\Core\Decision;
+use Bespredel\Wafu\Modules\Support\SlidingWindowCounter;
 use Bespredel\Wafu\Traits\ModuleHelperTrait;
 use Bespredel\Wafu\Storage\FileStorage;
 
@@ -25,6 +27,13 @@ final class NotFoundAbuseModule implements ModuleInterface
      * @var FileStorage
      */
     private FileStorage $storage;
+
+    /**
+     * Sliding window counter instance.
+     *
+     * @var SlidingWindowCounter
+     */
+    private SlidingWindowCounter $counter;
 
     /**
      * @param int                  $threshold     max allowed 404 within interval
@@ -50,6 +59,7 @@ final class NotFoundAbuseModule implements ModuleInterface
         $storageDir = $storageDir ?? rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'wafu-404';
 
         $this->storage = new FileStorage($storageDir, $this->gcProbability, $this->ttlMultiplier);
+        $this->counter = new SlidingWindowCounter($this->storage);
     }
 
     /**
@@ -66,7 +76,7 @@ final class NotFoundAbuseModule implements ModuleInterface
         }
 
         // Respond ONLY to 404
-        $statusCode = $context->getAttribute('http_status_code', 200);
+        $statusCode = $context->getAttribute(ContextKeys::HTTP_STATUS_CODE, 200);
         if ($statusCode !== 404) {
             return null;
         }
@@ -74,37 +84,10 @@ final class NotFoundAbuseModule implements ModuleInterface
         $this->storage->cleanup($this->interval);
 
         $key = $this->buildKey($context);
-        $now = time();
-        $windowStart = $now - $this->interval;
+        $result = $this->counter->hit($key, $this->threshold, $this->interval);
+        $count = $result['count'];
 
-        $data = $this->storage->read($key);
-        $timestamps = [];
-
-        if ($data !== null) {
-            foreach ($data['t'] as $ts) {
-                if ($ts >= $windowStart) {
-                    $timestamps[] = $ts;
-                }
-            }
-        }
-
-        // Add current 404
-        $timestamps[] = $now;
-
-        // File Growth Protection
-        $cap = max($this->threshold + 20, 50);
-        if (count($timestamps) > $cap) {
-            $timestamps = array_slice($timestamps, -$cap);
-        }
-
-        $count = count($timestamps);
-
-        $this->storage->write($key, [
-            't'  => $timestamps,
-            'ls' => $now,
-        ]);
-
-        if ($count > $this->threshold) {
+        if ($result['exceeded']) {
             $matchData = [
                 'module'    => self::class,
                 'key'       => $this->keyBy,
@@ -113,7 +96,7 @@ final class NotFoundAbuseModule implements ModuleInterface
                 'count'     => $count,
             ];
 
-            $context->setAttribute('wafu.match', $matchData);
+            $context->setAttribute(ContextKeys::MATCH, $matchData);
 
             return $this->createDecision(
                 $context,

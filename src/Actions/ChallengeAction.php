@@ -6,6 +6,7 @@ namespace Bespredel\Wafu\Actions;
 
 use Bespredel\Wafu\Contracts\ActionInterface;
 use Bespredel\Wafu\Core\Context;
+use Bespredel\Wafu\Core\ContextKeys;
 
 final class ChallengeAction implements ActionInterface
 {
@@ -19,7 +20,7 @@ final class ChallengeAction implements ActionInterface
         private int    $statusCode = 429,
         private string $message = 'Too many requests. Please complete the challenge.',
         private int    $retryAfter = 10,
-        private bool   $terminate = true
+        private bool   $terminate = false
     )
     {
     }
@@ -49,7 +50,7 @@ final class ChallengeAction implements ActionInterface
             $safeMessage = 'Too many requests. Please complete the challenge.';
         }
 
-        $context->setAttribute('wafu.response', [
+        $context->setAttribute(ContextKeys::RESPONSE, [
             'status'  => $this->statusCode,
             'headers' => $headers,
             'body'    => $safeMessage,
