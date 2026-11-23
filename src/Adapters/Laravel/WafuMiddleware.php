@@ -28,6 +28,25 @@ use Symfony\Component\HttpFoundation\Response;
 final class WafuMiddleware
 {
     /**
+     * Fluent helper for defining route middleware with specific modules.
+     *
+     * Example:
+     *   Route::middleware([WafuMiddleware::only('ip_blocklist', 'rate_limit')])
+     *
+     * @param string ...$modules List of module aliases to run.
+     *
+     * @return string
+     */
+    public static function only(string ...$modules): string
+    {
+        if ($modules === []) {
+            return static::class;
+        }
+
+        return static::class . ':' . implode(',', $modules);
+    }
+
+    /**
      * Constructor.
      *
      * @param Kernel          $kernel

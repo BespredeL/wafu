@@ -214,4 +214,21 @@ final class EngineFilterPipelineTest extends TestCase
         $decision2 = $kernel->handle($this->server('5.5.5.5'), [], [], [], [], [], ['ip_blocklist']);
         $this->assertTrue($decision2->isBlocked(), 'snake_case without _module suffix should also match');
     }
+
+    // -------------------------------------------------------------------------
+    // Tests: WafuMiddleware::only() helper
+    // -------------------------------------------------------------------------
+
+    public function test_wafu_middleware_only_helper(): void
+    {
+        $this->assertSame(
+            \Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::class,
+            \Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::only()
+        );
+
+        $this->assertSame(
+            \Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::class . ':ip_blocklist,rate_limit',
+            \Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::only('ip_blocklist', 'rate_limit')
+        );
+    }
 }

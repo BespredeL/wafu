@@ -132,13 +132,30 @@ protected $middleware = [
 ];
 ```
 
-Или применение к конкретным маршрутам в `routes/web.php`:
+Или применение к конкретным маршрутам в `routes/web.php` или `routes/api.php`:
 
 ```php
-Route::middleware([\Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::class])
-    ->group(function () {
-        // Ваши защищённые маршруты
-    });
+use Bespredel\Wafu\Adapters\Laravel\WafuMiddleware;
+
+// 1. Полная защита (все настроенные модули)
+Route::middleware([WafuMiddleware::class])->group(function () {
+    // Ваши защищённые маршруты
+});
+
+// 2. Выборочные модули через удобный статический хелпер:
+Route::middleware([WafuMiddleware::only('ip_blocklist', 'rate_limit')])->group(function () {
+    // Только проверка IP и лимит запросов
+});
+
+// 3. Выборочные модули через стандартную конкатенацию параметров Laravel:
+Route::middleware([WafuMiddleware::class . ':sql_injection,xss,lfi'])->prefix('admin')->group(function () {
+    // Глубокая инспекция инъекций для админки
+});
+
+// 4. Или через короткий строковый алиас 'wafu':
+Route::middleware('wafu:ip_blocklist,rate_limit')->group(function () {
+    // ...
+});
 ```
 
 3. **Настройка** в `config/wafu.php` (см. [Конфигурация](#конфигурация))

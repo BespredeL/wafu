@@ -131,13 +131,30 @@ protected $middleware = [
 ];
 ```
 
-Or apply to specific routes in `routes/web.php`:
+Or apply to specific routes in `routes/web.php` or `routes/api.php`:
 
 ```php
-Route::middleware([\Bespredel\Wafu\Adapters\Laravel\WafuMiddleware::class])
-    ->group(function () {
-        // Your protected routes
-    });
+use Bespredel\Wafu\Adapters\Laravel\WafuMiddleware;
+
+// 1. Full protection (all configured modules)
+Route::middleware([WafuMiddleware::class])->group(function () {
+    // Your protected routes
+});
+
+// 2. Specific modules via the convenient static helper:
+Route::middleware([WafuMiddleware::only('ip_blocklist', 'rate_limit')])->group(function () {
+    // Only IP blocklist and rate limiting
+});
+
+// 3. Specific modules via standard Laravel class parameter string:
+Route::middleware([WafuMiddleware::class . ':sql_injection,xss,lfi'])->prefix('admin')->group(function () {
+    // Deep injection inspection for admin area
+});
+
+// 4. Or via the short 'wafu' alias:
+Route::middleware('wafu:ip_blocklist,rate_limit')->group(function () {
+    // ...
+});
 ```
 
 3. **Configure** in `config/wafu.php` (see [Configuration](#configuration))

@@ -40,5 +40,10 @@ final class WafuServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../../config/wafu.php' => config_path('wafu.php'),
         ], 'wafu-config');
+
+        // Register the 'wafu' middleware alias if router is bound
+        if ($this->app->bound('router')) {
+            $this->app['router']->aliasMiddleware('wafu', WafuMiddleware::class);
+        }
     }
 }
