@@ -69,18 +69,28 @@ final class UriAllowDenyModule implements ModuleInterface
         }
 
         $uri = $context->getUri() ?: '/';
+        $decodedUri = rawurldecode($uri);
+        $normalizedUri = preg_replace('#/{2,}#', '/', $decodedUri) ?? $decodedUri;
+        $variants = array_unique([$uri, $decodedUri, $normalizedUri]);
 
         // deny prefix
         foreach ($this->denyPrefix as $p) {
-            if (is_string($p) && $p !== '' && str_starts_with($uri, $p)) {
-                return $this->deny($context, $uri, 'denyPrefix', $p);
+            if (!is_string($p) || $p === '') {
+                continue;
+            }
+            foreach ($variants as $v) {
+                if (str_starts_with($v, $p)) {
+                    return $this->deny($context, $uri, 'denyPrefix', $p);
+                }
             }
         }
 
         // deny regex
         foreach ($this->validatedDenyRegex as $rx) {
-            if (preg_match($rx, $uri) === 1) {
-                return $this->deny($context, $uri, 'denyRegex', $rx);
+            foreach ($variants as $v) {
+                if (preg_match($rx, $v) === 1) {
+                    return $this->deny($context, $uri, 'denyRegex', $rx);
+                }
             }
         }
 

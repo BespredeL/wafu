@@ -48,14 +48,12 @@ final class WafuMiddleware
             $request->query->all(),
             $request->request->all(),
             $request->cookies->all(),
-            $headers
+            $headers,
+            [ContextKeys::LOGGER => $this->logger]
         );
 
         $context = $result['context'];
         $decision = $result['decision'];
-
-        // PSR-3 logger is available for action
-        $context->setAttribute(ContextKeys::LOGGER, $this->logger);
 
         if ($decision->isBlocked()) {
             $respSpec = $context->getAttribute(ContextKeys::RESPONSE, []);
@@ -82,6 +80,12 @@ final class WafuMiddleware
             return $resp;
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        if ($response->getStatusCode() === 404) {
+            $this->kernel->handleResponse($context, 404);
+        }
+
+        return $response;
     }
 }

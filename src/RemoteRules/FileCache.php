@@ -52,7 +52,15 @@ final class FileCache
      */
     public function exists(): bool
     {
-        return is_file($this->path());
+        if (!is_dir($this->dir)) {
+            return false;
+        }
+
+        try {
+            return is_file($this->path());
+        } catch (\RuntimeException) {
+            return false;
+        }
     }
 
     /**
@@ -62,7 +70,16 @@ final class FileCache
      */
     public function read(): ?array
     {
-        $path = $this->path();
+        if (!is_dir($this->dir)) {
+            return null;
+        }
+
+        try {
+            $path = $this->path();
+        } catch (\RuntimeException) {
+            return null;
+        }
+
         if (!is_file($path)) {
             return null;
         }

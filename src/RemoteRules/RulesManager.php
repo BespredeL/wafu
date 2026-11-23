@@ -192,6 +192,7 @@ final class RulesManager
         // Important point: sign the ruleset without the signature field
         $tmp = $ruleset;
         unset($tmp[$field]);
+        self::ksortRecursive($tmp);
 
         $payload = json_encode($tmp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payload === false) {
@@ -201,6 +202,23 @@ final class RulesManager
         $ok = sodium_crypto_sign_verify_detached($sig, $payload, $pub);
         if (!$ok) {
             throw new RuntimeException('Ruleset signature verification failed');
+        }
+    }
+
+    /**
+     * Recursively sort keys for canonical JSON serialization.
+     *
+     * @param array $array
+     *
+     * @return void
+     */
+    private static function ksortRecursive(array &$array): void
+    {
+        ksort($array);
+        foreach ($array as &$value) {
+            if (is_array($value)) {
+                self::ksortRecursive($value);
+            }
         }
     }
 }

@@ -55,11 +55,12 @@ final class FileStorage
             return null;
         }
 
+        $locked = false;
         try {
             if (!flock($fp, LOCK_SH | LOCK_NB)) {
-                fclose($fp);
                 return null;
             }
+            $locked = true;
 
             $raw = stream_get_contents($fp);
             if ($raw === false || $raw === '') {
@@ -73,8 +74,12 @@ final class FileStorage
             return $data;
         }
         finally {
-            flock($fp, LOCK_UN);
-            fclose($fp);
+            if ($locked && is_resource($fp)) {
+                @flock($fp, LOCK_UN);
+            }
+            if (is_resource($fp)) {
+                @fclose($fp);
+            }
         }
     }
 
@@ -100,19 +105,24 @@ final class FileStorage
             return false;
         }
 
+        $locked = false;
         try {
             if (!flock($fp, LOCK_EX | LOCK_NB)) {
-                fclose($fp);
                 return false;
             }
+            $locked = true;
 
             $this->rewrite($fp, $data);
 
             return true;
         }
         finally {
-            flock($fp, LOCK_UN);
-            fclose($fp);
+            if ($locked && is_resource($fp)) {
+                @flock($fp, LOCK_UN);
+            }
+            if (is_resource($fp)) {
+                @fclose($fp);
+            }
         }
     }
 
@@ -129,28 +139,43 @@ final class FileStorage
             return;
         }
 
+        $this->lastCleanupAt = time();
         $cutoff = time() - ($interval * max(1, $this->ttlMultiplier));
         $processed = 0;
 
-        foreach (glob($this->storageDir . DIRECTORY_SEPARATOR . '*.json') ?: [] as $file) {
-            if ($processed >= $this->cleanupBatchSize) {
-                break;
-            }
+        $handle = @opendir($this->storageDir);
+        if ($handle === false) {
+            return;
+        }
 
-            if (!is_file($file)) {
-                continue;
-            }
+        try {
+            while (($entry = readdir($handle)) !== false) {
+                if ($processed >= $this->cleanupBatchSize) {
+                    break;
+                }
 
-            $raw = @file_get_contents($file);
-            if ($raw === false || $raw === '') {
-                continue;
-            }
+                if (!str_ends_with($entry, '.json')) {
+                    continue;
+                }
 
-            $data = json_decode($raw, true);
-            if (json_last_error() === JSON_ERROR_NONE && isset($data['ls']) && (int)$data['ls'] < $cutoff) {
-                @unlink($file);
+                $file = $this->storageDir . DIRECTORY_SEPARATOR . $entry;
+                if (!is_file($file)) {
+                    continue;
+                }
+
+                $raw = @file_get_contents($file);
+                if ($raw !== false && $raw !== '') {
+                    $data = json_decode($raw, true);
+                    if (json_last_error() === JSON_ERROR_NONE && isset($data['ls']) && (int)$data['ls'] < $cutoff) {
+                        @unlink($file);
+                    }
+                } else {
+                    @unlink($file);
+                }
+                $processed++;
             }
-            $processed++;
+        } finally {
+            closedir($handle);
         }
     }
 

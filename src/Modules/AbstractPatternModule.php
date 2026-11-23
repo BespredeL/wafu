@@ -65,23 +65,37 @@ abstract class AbstractPatternModule implements ModuleInterface
                     continue;
                 }
 
-                // Very long strings can cause catastrophic backtracking
-                if (strlen($value) > 10000) {
-                    $value = substr($value, 0, 10000);
+                // Scan in bounded overlapping chunks to prevent both ReDoS and truncation bypass
+                $len = strlen($value);
+                if ($len <= 4096) {
+                    $chunks = [$value];
+                } else {
+                    $chunks = [];
+                    $chunkSize = 4096;
+                    $overlap = 512;
+                    $maxScan = min($len, 65536);
+                    for ($offset = 0; $offset < $maxScan; $offset += ($chunkSize - $overlap)) {
+                        $chunks[] = substr($value, $offset, $chunkSize);
+                    }
+                    if ($len > $maxScan) {
+                        $chunks[] = substr($value, -4096);
+                    }
                 }
 
-                $result = @preg_match($pattern, $value);
+                foreach ($chunks as $chunk) {
+                    $result = @preg_match($pattern, $chunk);
 
-                if ($result === 1) {
-                    $matchData = [
-                        'module'  => static::class,
-                        'pattern' => $pattern,
-                        'value'   => $this->truncate($value, 512),
-                        'targets' => $this->targets,
-                    ];
-                    $context->setAttribute(ContextKeys::MATCH, $matchData);
+                    if ($result === 1) {
+                        $matchData = [
+                            'module'  => static::class,
+                            'pattern' => $pattern,
+                            'value'   => $this->truncate($chunk, 512),
+                            'targets' => $this->targets,
+                        ];
+                        $context->setAttribute(ContextKeys::MATCH, $matchData);
 
-                    return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
+                        return $this->createDecision($context, $this->onMatch, $this->reason, $matchData);
+                    }
                 }
             }
         }

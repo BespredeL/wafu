@@ -86,6 +86,7 @@ final class Context
      * @param array $headers               HTTP headers
      * @param array $trustedProxies        CIDR/IP list of trusted proxies
      * @param bool  $trustForwardedHeaders whether to trust XFF/X-Real-IP (only if REMOTE_ADDR is in trustedProxies)
+     * @param array $attributes            Initial context attributes
      */
     public function __construct(
         array $server,
@@ -94,7 +95,8 @@ final class Context
         array $cookies = [],
         array $headers = [],
         array $trustedProxies = [],
-        bool  $trustForwardedHeaders = false
+        bool  $trustForwardedHeaders = false,
+        array $attributes = []
     )
     {
         $this->method = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
@@ -103,6 +105,7 @@ final class Context
         $this->query = $query;
         $this->body = $body;
         $this->cookies = $cookies;
+        $this->attributes = $attributes;
 
         $this->headers = $headers ?: self::extractHeaders($server);
 
@@ -337,9 +340,20 @@ final class Context
 
         $xff = $normalizedHeaders['x-forwarded-for'] ?? ($server['HTTP_X_FORWARDED_FOR'] ?? null);
         if (is_string($xff) && $xff !== '') {
-            $ip = trim(explode(',', $xff)[0]);
-            if (Net::isValidIp($ip)) {
-                return $ip;
+            // Traverse from right to left: find the first IP that is not a trusted proxy
+            $parts = array_reverse(array_map('trim', explode(',', $xff)));
+            foreach ($parts as $part) {
+                if ($part === '' || !Net::isValidIp($part)) {
+                    continue;
+                }
+                if (!Net::ipMatchesAny($part, $trustedProxies)) {
+                    return $part;
+                }
+            }
+            // If all IPs match trusted proxies, return the leftmost valid IP
+            $leftmost = trim(explode(',', $xff)[0]);
+            if (Net::isValidIp($leftmost)) {
+                return $leftmost;
             }
         }
 

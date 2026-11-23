@@ -32,8 +32,12 @@ final class RceModule extends AbstractPatternModule
     protected function getDefaultPatterns(): array
     {
         return [
-            // dividers/bypasses
-            '/(;|\|\||&&|\||`|\$\(|\${|\%60)/',
+            // Command separators followed by command binaries or execution wrappers
+            '/(?:;|\|\||&&|\n)\s*(?:bash|sh|cmd|powershell|pwsh|curl|wget|nc|netcat|ncat|socat|cat|id|whoami|uname)\b/i',
+            '/`[^`]+`/',
+            '/\$\([^\)]+\)/',
+            '/\${[A-Za-z0-9_]+}/',
+            '/%60[^%]+%60/',
             '/\b(?:bash|sh|cmd|powershell|pwsh)\b/i',
 
             // typical utilities for downloading/executing

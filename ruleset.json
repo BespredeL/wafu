@@ -1,5 +1,5 @@
 {
-    "version": "2026.01.03-01",
+    "version": "2026.11.23-01",
     "ttl": 10800,
     "config": {
         "enabled": true,
@@ -41,29 +41,30 @@
         },
         "patterns": {
             "sql_keywords": [
-                "/\\bUNION\\b/i",
-                "/\\bSELECT\\b/i",
-                "/\\bINSERT\\b/i",
-                "/\\bUPDATE\\b/i",
-                "/\\bDELETE\\b/i",
-                "/\\bDROP\\b/i",
+                "/\\bUNION\\s+(?:ALL\\s+)?SELECT\\b/i",
+                "/\\bSELECT\\s+(?:(?:\\*|\\d+|[\\w\\.\\`\\\"]+\\s*\\([^\\)]*\\)|[\\w\\.\\`\\\"]+)\\s*,\\s*)*(?:\\*|\\d+|[\\w\\.\\`\\\"]+\\s*\\([^\\)]*\\))\\s+FROM\\b/i",
+                "/\\bSELECT\\s+.*?\\bFROM\\s+[\\w\\.\\`\\\"]+\\s+(?:WHERE|JOIN|GROUP\\s+BY|ORDER\\s+BY|LIMIT|HAVING|--|#|\\/\\*)/i",
+                "/\\bINSERT\\s+INTO\\b/i",
+                "/\\bUPDATE\\b[\\s\\S]+\\bSET\\b/i",
+                "/\\bDELETE\\s+FROM\\b/i",
+                "/\\bDROP\\s+(?:TABLE|DATABASE|VIEW|INDEX)\\b/i",
                 "/\\bSLEEP\\s*\\(/i",
                 "/\\bBENCHMARK\\s*\\(/i",
                 "/\\bINFORMATION_SCHEMA\\b/i",
-                "/(--|#|\\/\\*)/m",
-                "/\\bOR\\b\\s+1\\s*=\\s*1/i"
+                "/(--\\s+|#|\\/\\*[\\s\\S]*?\\*\\/)/",
+                "/\\bOR\\b\\s+['\"]?\\w+['\"]?\\s*=\\s*['\"]?\\w+['\"]?/i"
             ],
             "xss_basic": [
                 "/<\\s*script\\b/i",
                 "/javascript\\s*:/i",
                 "/<\\s*img\\b[^>]*\\bonerror\\s*=/i",
+                "/<\\s*(?:svg|body|iframe|object|embed|details)\\b[^>]*\\bon[a-z]+\\s*=/i",
                 "/document\\.cookie/i"
             ],
             "bad_bots_ua": [
                 "/\\bcurl\\b/i",
                 "/\\bwget\\b/i",
                 "/python-requests/i",
-                "/\\bokhttp\\b/i",
                 "/\\bnikto\\b/i",
                 "/\\bsqlmap\\b/i",
                 "/\\bmasscan\\b/i",
@@ -85,7 +86,11 @@
                 "/\\b(?:expect|data|phar|zip):\\/\\//i"
             ],
             "rce_signatures": [
-                "/(;|\\|\\||&&|\\||`|\\$\\(|\\$\\{)/",
+                "/(?:;|\\|\\||&&|\\n)\\s*(?:bash|sh|cmd|powershell|pwsh|curl|wget|nc|netcat|ncat|socat|cat|id|whoami|uname)\\b/i",
+                "/`[^`]+`/",
+                "/\\$\\([^\\)]+\\)/",
+                "/\\${[A-Za-z0-9_]+}/",
+                "/%60[^%]+%60/",
                 "/\\b(?:bash|sh|cmd|powershell|pwsh)\\b/i",
                 "/\\b(?:curl|wget|nc|netcat|ncat|socat)\\b/i",
                 "/\\bpython\\s*-c\\b/i",

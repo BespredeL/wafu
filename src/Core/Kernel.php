@@ -74,6 +74,7 @@ final class Kernel
      * @param array $body
      * @param array $cookies
      * @param array $headers
+     * @param array $attributes Initial context attributes (e.g. logger)
      *
      * @return Decision
      *
@@ -84,10 +85,11 @@ final class Kernel
         array $query = [],
         array $body = [],
         array $cookies = [],
-        array $headers = []
+        array $headers = [],
+        array $attributes = []
     ): Decision
     {
-        return $this->handleWithContext($server, $query, $body, $cookies, $headers)['decision'];
+        return $this->handleWithContext($server, $query, $body, $cookies, $headers, $attributes)['decision'];
     }
 
     /**
@@ -98,6 +100,7 @@ final class Kernel
      * @param array $body
      * @param array $cookies
      * @param array $headers
+     * @param array $attributes Initial context attributes (e.g. logger)
      *
      * @return array
      *
@@ -108,13 +111,14 @@ final class Kernel
         array $query = [],
         array $body = [],
         array $cookies = [],
-        array $headers = []
+        array $headers = [],
+        array $attributes = []
     ): array
     {
         if (!($this->config['enabled'] ?? true)) {
             return [
                 'decision' => Decision::allow(),
-                'context'  => new Context($server, $query, $body, $cookies, $headers),
+                'context'  => new Context($server, $query, $body, $cookies, $headers, [], false, $attributes),
             ];
         }
 
@@ -128,12 +132,34 @@ final class Kernel
             $cookies,
             $headers,
             is_array($trustedProxies) ? $trustedProxies : [],
-            $trustForwarded
+            $trustForwarded,
+            $attributes
         );
 
         $decision = $this->engine->run($context);
 
         return ['decision' => $decision, 'context' => $context];
+    }
+
+    /**
+     * Record a response code into context and re-evaluate modules (e.g. for NotFoundAbuse).
+     *
+     * @param Context $context
+     * @param int     $statusCode
+     *
+     * @return Decision
+     *
+     * @throws \ReflectionException
+     */
+    public function handleResponse(Context $context, int $statusCode): Decision
+    {
+        $context->setAttribute(ContextKeys::HTTP_STATUS_CODE, $statusCode);
+
+        if (!($this->config['enabled'] ?? true)) {
+            return Decision::allow();
+        }
+
+        return $this->engine->run($context);
     }
 
     /**

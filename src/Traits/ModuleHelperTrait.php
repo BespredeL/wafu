@@ -70,27 +70,34 @@ trait ModuleHelperTrait
     }
 
     /**
-     * Flatten array recursively to string values.
+     * Flatten array recursively to string values (and optionally keys).
      *
      * @param array $data
+     * @param bool  $includeKeys Whether to include non-numeric array keys
      *
      * @return array
      */
-    protected function flatten(array $data): array
+    protected function flatten(array $data, bool $includeKeys = true): array
     {
         $result = [];
 
-        $walk = static function ($value) use (&$result, &$walk) {
+        $walk = static function ($value, $key) use (&$result, &$walk, $includeKeys) {
+            if ($includeKeys && is_string($key) && $key !== '' && !is_numeric($key)) {
+                $result[] = $key;
+            }
+
             if (is_array($value)) {
-                foreach ($value as $v) {
-                    $walk($v);
+                foreach ($value as $k => $v) {
+                    $walk($v, $k);
                 }
             } else {
                 $result[] = (string)$value;
             }
         };
 
-        $walk($data);
+        foreach ($data as $k => $v) {
+            $walk($v, $k);
+        }
 
         return $result;
     }
@@ -106,7 +113,7 @@ trait ModuleHelperTrait
     protected function collectTargets(Context $context, array $targets): array
     {
         if (in_array('all', $targets, true) || in_array('payload', $targets, true)) {
-            return $context->getFlattenedPayload();
+            return $this->flatten($context->getPayload(), true);
         }
 
         $values = [];
@@ -114,17 +121,17 @@ trait ModuleHelperTrait
         foreach ($targets as $t) {
             switch ($t) {
                 case 'query':
-                    foreach ($this->flatten($context->getQuery()) as $value) {
+                    foreach ($this->flatten($context->getQuery(), true) as $value) {
                         $values[] = $value;
                     }
                     break;
                 case 'body':
-                    foreach ($this->flatten($context->getBody()) as $value) {
+                    foreach ($this->flatten($context->getBody(), true) as $value) {
                         $values[] = $value;
                     }
                     break;
                 case 'cookies':
-                    foreach ($this->flatten($context->getCookies()) as $value) {
+                    foreach ($this->flatten($context->getCookies(), true) as $value) {
                         $values[] = $value;
                     }
                     break;

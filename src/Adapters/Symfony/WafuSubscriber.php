@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Bespredel\Wafu\Adapters\Symfony;
 
+use Bespredel\Wafu\Core\Context;
 use Bespredel\Wafu\Core\Kernel;
 use Bespredel\Wafu\Core\ContextKeys;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 final class WafuSubscriber implements EventSubscriberInterface
@@ -35,7 +37,8 @@ final class WafuSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', 100],
+            KernelEvents::REQUEST  => ['onKernelRequest', 100],
+            KernelEvents::RESPONSE => ['onKernelResponse', -100],
         ];
     }
 
@@ -66,13 +69,14 @@ final class WafuSubscriber implements EventSubscriberInterface
             $request->query->all(),
             $request->request->all(),
             $request->cookies->all(),
-            $headers
+            $headers,
+            [ContextKeys::LOGGER => $this->logger]
         );
 
         $context = $result['context'];
         $decision = $result['decision'];
 
-        $context->setAttribute(ContextKeys::LOGGER, $this->logger);
+        $request->attributes->set('_wafu_context', $context);
 
         if ($decision->isBlocked()) {
             $respSpec = $context->getAttribute(ContextKeys::RESPONSE, []);
@@ -91,6 +95,31 @@ final class WafuSubscriber implements EventSubscriberInterface
             }
 
             $event->setResponse(new Response($body, $status, $headersOut));
+        }
+    }
+
+    /**
+     * Handle kernel response (e.g. for NotFoundAbuse module).
+     *
+     * @param ResponseEvent $event
+     *
+     * @return void
+     *
+     * @throws \ReflectionException
+     */
+    public function onKernelResponse(ResponseEvent $event): void
+    {
+        if (!$event->isMainRequest()) {
+            return;
+        }
+
+        $response = $event->getResponse();
+        if ($response->getStatusCode() === Response::HTTP_NOT_FOUND) {
+            $request = $event->getRequest();
+            $context = $request->attributes->get('_wafu_context');
+            if ($context instanceof Context) {
+                $this->wafKernel->handleResponse($context, 404);
+            }
         }
     }
 }
