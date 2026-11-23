@@ -69,12 +69,13 @@ final class Kernel
     /**
      * Handle request.
      *
-     * @param array $server
-     * @param array $query
-     * @param array $body
-     * @param array $cookies
-     * @param array $headers
-     * @param array $attributes Initial context attributes (e.g. logger)
+     * @param array    $server
+     * @param array    $query
+     * @param array    $body
+     * @param array    $cookies
+     * @param array    $headers
+     * @param array    $attributes Initial context attributes (e.g. logger)
+     * @param string[] $only       If non-empty, run only these module names/aliases.
      *
      * @return Decision
      *
@@ -86,23 +87,25 @@ final class Kernel
         array $body = [],
         array $cookies = [],
         array $headers = [],
-        array $attributes = []
+        array $attributes = [],
+        array $only = []
     ): Decision
     {
-        return $this->handleWithContext($server, $query, $body, $cookies, $headers, $attributes)['decision'];
+        return $this->handleWithContext($server, $query, $body, $cookies, $headers, $attributes, $only)['decision'];
     }
 
     /**
      * Handle request with context.
      *
-     * @param array $server
-     * @param array $query
-     * @param array $body
-     * @param array $cookies
-     * @param array $headers
-     * @param array $attributes Initial context attributes (e.g. logger)
+     * @param array    $server
+     * @param array    $query
+     * @param array    $body
+     * @param array    $cookies
+     * @param array    $headers
+     * @param array    $attributes Initial context attributes (e.g. logger)
+     * @param string[] $only       If non-empty, run only these module names/aliases.
      *
-     * @return array
+     * @return array{decision: Decision, context: Context}
      *
      * @throws \ReflectionException
      */
@@ -112,7 +115,8 @@ final class Kernel
         array $body = [],
         array $cookies = [],
         array $headers = [],
-        array $attributes = []
+        array $attributes = [],
+        array $only = []
     ): array
     {
         if (!($this->config['enabled'] ?? true)) {
@@ -136,7 +140,7 @@ final class Kernel
             $attributes
         );
 
-        $decision = $this->engine->run($context);
+        $decision = $this->engine->run($context, $only);
 
         return ['decision' => $decision, 'context' => $context];
     }
@@ -144,14 +148,15 @@ final class Kernel
     /**
      * Record a response code into context and re-evaluate modules (e.g. for NotFoundAbuse).
      *
-     * @param Context $context
-     * @param int     $statusCode
+     * @param Context  $context
+     * @param int      $statusCode
+     * @param string[] $only       If non-empty, run only these module names/aliases.
      *
      * @return Decision
      *
      * @throws \ReflectionException
      */
-    public function handleResponse(Context $context, int $statusCode): Decision
+    public function handleResponse(Context $context, int $statusCode, array $only = []): Decision
     {
         $context->setAttribute(ContextKeys::HTTP_STATUS_CODE, $statusCode);
 
@@ -159,7 +164,7 @@ final class Kernel
             return Decision::allow();
         }
 
-        return $this->engine->run($context);
+        return $this->engine->run($context, $only);
     }
 
     /**
