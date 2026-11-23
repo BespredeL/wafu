@@ -107,7 +107,12 @@ final class Context
         $this->cookies = $cookies;
         $this->attributes = $attributes;
 
-        $this->headers = $headers ?: self::extractHeaders($server);
+        $rawHeaders = $headers ?: self::extractHeaders($server);
+        $normalized = [];
+        foreach ($rawHeaders as $name => $val) {
+            $normalized[strtolower((string)$name)] = (string)$val;
+        }
+        $this->headers = $normalized;
 
         $this->ip = self::resolveIp(
             $server,
@@ -315,14 +320,8 @@ final class Context
             return $remoteAddr !== '' ? $remoteAddr : '0.0.0.0';
         }
 
-        // Normalize header keys to lowercase for consistent lookup
-        $normalizedHeaders = [];
-        foreach ($headers as $key => $value) {
-            $normalizedHeaders[strtolower($key)] = $value;
-        }
-
         // Priority: CF / X-Real-IP / XFF (first)
-        $cf = $normalizedHeaders['cf-connecting-ip'] ?? ($server['HTTP_CF_CONNECTING_IP'] ?? null);
+        $cf = $headers['cf-connecting-ip'] ?? ($server['HTTP_CF_CONNECTING_IP'] ?? null);
         if (is_string($cf) && $cf !== '') {
             $ip = trim(explode(',', $cf)[0]);
             if (Net::isValidIp($ip)) {
@@ -330,7 +329,7 @@ final class Context
             }
         }
 
-        $xri = $normalizedHeaders['x-real-ip'] ?? ($server['HTTP_X_REAL_IP'] ?? null);
+        $xri = $headers['x-real-ip'] ?? ($server['HTTP_X_REAL_IP'] ?? null);
         if (is_string($xri) && $xri !== '') {
             $ip = trim(explode(',', $xri)[0]);
             if (Net::isValidIp($ip)) {
@@ -338,7 +337,7 @@ final class Context
             }
         }
 
-        $xff = $normalizedHeaders['x-forwarded-for'] ?? ($server['HTTP_X_FORWARDED_FOR'] ?? null);
+        $xff = $headers['x-forwarded-for'] ?? ($server['HTTP_X_FORWARDED_FOR'] ?? null);
         if (is_string($xff) && $xff !== '') {
             // Traverse from right to left: find the first IP that is not a trusted proxy
             $parts = array_reverse(array_map('trim', explode(',', $xff)));

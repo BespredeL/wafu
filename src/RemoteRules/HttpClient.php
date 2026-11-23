@@ -8,6 +8,7 @@ use Bespredel\Wafu\Core\Net;
 
 final class HttpClient
 {
+    private const DEFAULT_USER_AGENT = 'WAFU-HttpClient/1.0 (+https://github.com/BespredeL/wafu)';
 
     /**
      * Get HTTP response.
@@ -43,18 +44,7 @@ final class HttpClient
     private function curlGet(string $url, array $headers): array
     {
         $ch = curl_init($url);
-
-        $h = [];
-        foreach ($headers as $k => $v) {
-            $k = preg_replace('/[\r\n]/', '', (string)$k);
-            $v = preg_replace('/[\r\n]/', '', (string)$v);
-
-            if ($k === '' || $v === '') {
-                continue;
-            }
-
-            $h[] = $k . ': ' . $v;
-        }
+        $h = $this->buildHeaderLines($headers, false);
 
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER  => true,
@@ -68,7 +58,7 @@ final class HttpClient
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, // Only HTTP/HTTPS for redirects (if enabled)
             CURLOPT_SSL_VERIFYPEER  => true,
             CURLOPT_SSL_VERIFYHOST  => 2,
-            CURLOPT_USERAGENT       => 'WAFU-HttpClient/1.0 (+https://github.com/BespredeL/wafu)',
+            CURLOPT_USERAGENT       => self::DEFAULT_USER_AGENT,
         ]);
 
         $raw = curl_exec($ch);
@@ -101,31 +91,7 @@ final class HttpClient
      */
     private function streamGet(string $url, array $headers): array
     {
-        // Build header lines
-        $headerLines = [];
-        foreach ($headers as $k => $v) {
-            $k = preg_replace('/[\r\n]/', '', (string)$k);
-            $v = preg_replace('/[\r\n]/', '', (string)$v);
-
-            if ($k === '' || $v === '') {
-                continue;
-            }
-
-            $headerLines[] = $k . ': ' . $v;
-        }
-
-        // Ensure explicit User-Agent if not provided
-        $hasUa = false;
-        foreach ($headers as $k => $v) {
-            if (strtolower($k) === 'user-agent') {
-                $hasUa = true;
-                break;
-            }
-        }
-
-        if (!$hasUa) {
-            $headerLines[] = 'User-Agent: WAFU-HttpClient/1.0 (+https://github.com/BespredeL/wafu)';
-        }
+        $headerLines = $this->buildHeaderLines($headers, true);
 
         $ctx = stream_context_create([
             'http' => [
@@ -162,6 +128,41 @@ final class HttpClient
             'headers' => $respHeaders,
             'body'    => (string)$body,
         ];
+    }
+
+    /**
+     * Build and sanitize HTTP header lines.
+     *
+     * @param array $headers
+     * @param bool  $ensureUserAgent
+     *
+     * @return array
+     */
+    private function buildHeaderLines(array $headers, bool $ensureUserAgent = false): array
+    {
+        $headerLines = [];
+        $hasUa = false;
+
+        foreach ($headers as $k => $v) {
+            $k = preg_replace('/[\r\n]/', '', (string)$k);
+            $v = preg_replace('/[\r\n]/', '', (string)$v);
+
+            if ($k === '' || $v === '') {
+                continue;
+            }
+
+            if (strtolower((string)$k) === 'user-agent') {
+                $hasUa = true;
+            }
+
+            $headerLines[] = $k . ': ' . $v;
+        }
+
+        if ($ensureUserAgent && !$hasUa) {
+            $headerLines[] = 'User-Agent: ' . self::DEFAULT_USER_AGENT;
+        }
+
+        return $headerLines;
     }
 
     /**

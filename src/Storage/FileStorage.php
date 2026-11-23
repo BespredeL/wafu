@@ -190,20 +190,12 @@ final class FileStorage
     {
         $hashed = hash('sha256', $key);
 
-        // Additional validation: ensure hash is valid hex string
-        if (!preg_match('/\A[a-f0-9]{64}\z/i', $hashed)) {
+        // Strict hexadecimal format check guarantees no directory traversal characters
+        if (!preg_match('/\A[a-f0-9]{64}\z/', $hashed)) {
             throw new RuntimeException('Invalid key hash generated');
         }
 
-        $file = $this->storageDir . DIRECTORY_SEPARATOR . $hashed . '.json';
-
-        $realPath = realpath(dirname($file));
-        $realStorageDir = realpath($this->storageDir);
-        if ($realPath === false || $realStorageDir === false || $realPath !== $realStorageDir) {
-            throw new RuntimeException('File path validation failed: path traversal detected');
-        }
-
-        return $file;
+        return $this->storageDir . DIRECTORY_SEPARATOR . $hashed . '.json';
     }
 
     /**

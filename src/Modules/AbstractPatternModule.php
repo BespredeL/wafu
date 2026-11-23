@@ -65,22 +65,7 @@ abstract class AbstractPatternModule implements ModuleInterface
                     continue;
                 }
 
-                // Scan in bounded overlapping chunks to prevent both ReDoS and truncation bypass
-                $len = strlen($value);
-                if ($len <= 4096) {
-                    $chunks = [$value];
-                } else {
-                    $chunks = [];
-                    $chunkSize = 4096;
-                    $overlap = 512;
-                    $maxScan = min($len, 65536);
-                    for ($offset = 0; $offset < $maxScan; $offset += ($chunkSize - $overlap)) {
-                        $chunks[] = substr($value, $offset, $chunkSize);
-                    }
-                    if ($len > $maxScan) {
-                        $chunks[] = substr($value, -4096);
-                    }
-                }
+                $chunks = $this->extractInspectionChunks($value);
 
                 foreach ($chunks as $chunk) {
                     $result = @preg_match($pattern, $chunk);
@@ -101,6 +86,36 @@ abstract class AbstractPatternModule implements ModuleInterface
         }
 
         return null;
+    }
+
+    /**
+     * Extract inspection chunks with overlapping windows to prevent ReDoS and truncation bypasses.
+     *
+     * @param string $value
+     *
+     * @return array<int, string>
+     */
+    protected function extractInspectionChunks(string $value): array
+    {
+        $len = strlen($value);
+        if ($len <= 4096) {
+            return [$value];
+        }
+
+        $chunks = [];
+        $chunkSize = 4096;
+        $overlap = 512;
+        $maxScan = min($len, 65536);
+
+        for ($offset = 0; $offset < $maxScan; $offset += ($chunkSize - $overlap)) {
+            $chunks[] = substr($value, $offset, $chunkSize);
+        }
+
+        if ($len > $maxScan) {
+            $chunks[] = substr($value, -4096);
+        }
+
+        return $chunks;
     }
 
     /**
